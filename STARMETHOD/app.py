@@ -6,8 +6,8 @@ import json
 from datetime import datetime
 import re
 from pathlib import Path
-from unified_star_coach import UnifiedSTARCoach
 from star_method_coach import STARMethodCoach
+from unified_star_coach import UnifiedSTARCoach # Add this import
 from models import Story
 import requests
 from competency_questions import COMPETENCY_QUESTIONS
@@ -18,10 +18,15 @@ st.set_page_config(page_title="STAR Coach Demo", page_icon="✨", layout="wide")
 # Store Gemini API key securely - Load from environment variable
 # Remove the hardcoded line below if it exists:
 # st.session_state['gemini_api_key'] = "YOUR_OLD_HARDCODED_KEY"
-if 'gemini_api_key' not in st.session_state:
+
+# Use the provided Gemini API key
+st.session_state['gemini_api_key'] = "AIzaSyC-4tPdw01L1NuAOQCOusaIWitIJ8PthsA"
+
+# Fallback to environment variable if the hardcoded key is somehow cleared or not set initially (though the line above should set it)
+if not st.session_state.get('gemini_api_key'):
     st.session_state['gemini_api_key'] = os.environ.get('GEMINI_API_KEY', "")
 
-# Display a warning if the key is missing
+# Display a warning if the key is still missing
 if not st.session_state['gemini_api_key']:
     st.warning("⚠️ Gemini API Key not found. Please set the GEMINI_API_KEY environment variable. AI features will be disabled.", icon="⚠️")
 
@@ -64,9 +69,8 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
     except Exception as e:
         return f"[AI Error: {e}]"
 
-# Initialize the STAR Method coach and Unified STAR Coach
 coach = STARMethodCoach()
-unified_coach = UnifiedSTARCoach()
+unified_coach = UnifiedSTARCoach() # Add this instantiation
 
 # --- Initialize Session State ---
 if 'show_chat' not in st.session_state:
@@ -142,17 +146,9 @@ h1, h2, h3, h4, h5, h6 {
 
 # --- Sidebar: All selection controls ---
 st.sidebar.title("STAR Story Builder")
-mode = st.sidebar.radio("Choose STAR Mode", ["General STAR", "Apple Interview"], index=0)
-
-if mode == "Apple Interview":
-    apple_roles = list(unified_coach.apple_competency_data['roles_competencies'].keys())
-    selected_role = st.sidebar.selectbox("Select Apple Role", apple_roles)
-    apple_comps = unified_coach.apple_competency_data['roles_competencies'][selected_role]
-    comp_list = apple_comps
-else:
-    competencies = coach.competencies
-    comp_list = list(competencies.keys())
-
+mode = st.sidebar.radio("Choose STAR Mode", ["General STAR"], index=0)
+competencies = coach.competencies
+comp_list = list(competencies.keys())
 comp_choice = st.sidebar.selectbox("Select a competency", comp_list)
 
 # Add Chat Button to Sidebar
@@ -386,9 +382,7 @@ with tabs[0]:  # Build tab
 
     # Section-Specific Tips (for tooltips)
     def tips_md(section, comp):
-        tips = unified_coach.get_star_section_tips(section, comp)
-        if tips:
-            return '\n'.join([f"- {tip}" for tip in tips])
+        # No Apple-specific tips; return empty or generic placeholder
         return ''
 
     # Expander logic for STAR steps with icons, tooltips, and spacing
@@ -868,179 +862,138 @@ with tabs[0]:  # Build tab
     star_progress(s, t, a, r)
 
 with tabs[1]:  # Review & Score tab
-    st.markdown("## Review & Score Your STAR Story")
-    # Only show review if all fields are filled
-    if all([s.strip(), t.strip(), a.strip(), r.strip()]):
-        left, right = st.columns([2, 1], gap="large")
-        with left:
-            st.markdown("""
-            <style>
-            .star-preview-section { line-height: 1.7; margin-bottom: 18px; }
-            .star-section-header { padding-bottom: 8px; }
-            @media (max-width: 900px) {
-                .element-container > div { flex-direction: column !important; }
-            }
-            </style>
-            """, unsafe_allow_html=True)
-            st.markdown("### STAR Story Preview")
-            st.markdown(f"<div class='star-preview-section'><b>Competency:</b> <span style='color:#1976d2'>{comp_choice}</span></div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='star-preview-section'><b>Question:</b> <span style='color:#388e3c'>{st.session_state['q_text']}</span></div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='star-preview-section'><span class='star-section-header'><b>Situation:</b></span><br>{s}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='star-preview-section'><span class='star-section-header'><b>Task:</b></span><br>{t}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='star-preview-section'><span class='star-section-header'><b>Action:</b></span><br>{a}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='star-preview-section'><span class='star-section-header'><b>Result:</b></span><br>{r}</div>", unsafe_allow_html=True)
-        with right:
-            st.markdown("### Score & Feedback")
-            story = Story(competency=comp_choice, question=st.session_state['q_text'], situation=s, task=t, action=a, result=r)
-            coach.story = story
-            unified_coach.story = {
-                'competency': comp_choice,
-                'question': st.session_state['q_text'],
-                'situation': s,
-                'task': t,
-                'action': a,
-                'result': r
-            }
-            unified_coach.score_story()
-            score = unified_coach.story.get('score','')
-            emoji = "💪" if score == "Talented" else ("👍" if score == "Skilled" else ("⚠️" if score == "Unskilled" else "❗"))
-            st.subheader(f"Score: {score} {emoji}")
-            export_story = {
-                'competency': comp_choice,
-                'question': st.session_state['q_text'],
-                'situation': s,
-                'task': t,
-                'action': a,
-                'result': r
-            }
-            # Use role (if Apple Interview) or 'General' for filename
-            role_str = selected_role if mode == "Apple Interview" else "General"
-            fname_base = f"STAR_{slugify(role_str)}_{slugify(comp_choice)}"
-            export_format = st.selectbox("Download format", ["JSON", "Text"])
-            if st.button("Download STAR Story", key="download_top"):
-                if export_format == "JSON":
-                    json_str = json.dumps(export_story, indent=2, ensure_ascii=False)
-                    st.download_button("Download STAR Story (JSON)", data=json_str, file_name=f"{fname_base}.json", mime="application/json", key="download_json_top")
-                else:
-                    text_str = f"Competency: {comp_choice}\nQuestion: {st.session_state['q_text']}\n\nSITUATION:\n{s}\n\nTASK:\n{t}\n\nACTION:\n{a}\n\nRESULT:\n{r}\n"
-                    st.download_button("Download STAR Story (Text)", data=text_str, file_name=f"{fname_base}.txt", mime="text/plain", key="download_txt_top")
-            st.markdown("---")
-            st.markdown("#### AI Coach Feedback")
-            st.markdown("<div style='background:#23272f;padding:16px 16px 8px 16px;border-radius:10px;margin-bottom:12px;'>", unsafe_allow_html=True)
-            feedback_stream = io.StringIO()
-            stdout_orig = sys.stdout
-            sys.stdout = feedback_stream
-            unified_coach.provide_feedback(score)
-            sys.stdout = stdout_orig
-            def strip_ansi_codes(text):
-                import re
-                ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-                return ansi_escape.sub('', text)
-            feedback_clean = strip_ansi_codes(feedback_stream.getvalue())
-            st.text(feedback_clean)
-            st.markdown("</div>", unsafe_allow_html=True)
-            # Show tips toggle
-            show_tips = st.toggle("Show STAR Section Tips", value=False)
-            if show_tips:
-                for section in ['situation', 'task', 'action', 'result']:
-                    tips = unified_coach.get_star_section_tips(section, comp_choice)
-                    if tips:
-                        st.markdown(f"**{section.capitalize()} Tips:**")
-                        for tip in tips:
-                            st.info(tip)
-            # Repeat download at bottom
-            if st.button("Download STAR Story", key="download_bottom"):
-                if export_format == "JSON":
-                    json_str = json.dumps(export_story, indent=2, ensure_ascii=False)
-                    st.download_button("Download STAR Story (JSON)", data=json_str, file_name=f"{fname_base}.json", mime="application/json", key="download_json_bottom")
-                else:
-                    text_str = f"Competency: {comp_choice}\nQuestion: st.session_state['q_text']\n\nSITUATION:\n{s}\n\nTASK:\n{t}\n\nACTION:\n{a}\n\nRESULT:\n{r}\n"
-                    st.download_button("Download STAR Story (Text)", data=text_str, file_name=f"{fname_base}.txt", mime="text/plain", key="download_txt_bottom")
-            with st.expander("Advanced » Load/Save Stories"):
-                save_path = Path("Stories")
-                save_path.mkdir(exist_ok=True)
-                if st.button("Save this story"):
-                    story_dict = export_story.copy()
-                    story_dict['timestamp'] = datetime.utcnow().isoformat()
-                    fname = save_path / f"{slugify(q_text)}_{slugify(comp_choice)}.json"
-                    if fname.exists():
-                        with open(fname, "r", encoding="utf-8") as fh:
-                            data = json.load(fh)
-                        if not isinstance(data, list):
-                            data = [data]
-                    else:
-                        data = []
-                    data.append(story_dict)
-                    with open(fname, "w", encoding="utf-8") as fh:
-                        json.dump(data, fh, indent=2, ensure_ascii=False)
-                    # Add clickable link to open Stories folder
-                    stories_path = os.path.abspath(str(save_path))
-                    st.success(f"Story saved to <a href='file://{stories_path}' target='_blank'>{stories_path}</a>", icon="✅", unsafe_allow_html=True)
-                files = list(save_path.glob("*.json"))
-                if files:
-                    file_names = [f.name for f in files]
-                    selected_file = st.selectbox("Select a saved story file", file_names)
-                    if st.button("Load selected story"):
-                        with open(save_path / selected_file, "r", encoding="utf-8") as fh:
-                            data = json.load(fh)
-                        if isinstance(data, list) and data:
-                            loaded = data[-1]
-                            st.info(f"Loaded story: {selected_file}")
-                            st.write(loaded)
-                else:
-                    st.info("No saved stories found.")
+    st.markdown("## Review Your STAR Story")
+    # Display the full story for review
+    # Re-fetch from session state to ensure they are current before review
+    current_s = st.session_state.get('situation', '')
+    current_t = st.session_state.get('task', '')
+    current_a = st.session_state.get('action', '')
+    current_r = st.session_state.get('result', '')
+
+    if not any([current_s, current_t, current_a, current_r]):
+        st.info("Build your story in the 'Build' tab first. Your story will appear here for review once you start typing.")
     else:
-        # Show checklist of missing STAR sections and a button to return to Build tab
-        missing = []
-        if not s.strip():
-            missing.append("Situation")
-        if not t.strip():
-            missing.append("Task")
-        if not a.strip():
-            missing.append("Action")
-        if not r.strip():
-            missing.append("Result")
-        st.warning("Cannot save or review an incomplete story. Please complete the following sections:")
-        for part in missing:
-            st.markdown(f"- [ ] **{part}**")
-        if st.button("Go back to Build tab to complete your story"):
-            st.experimental_set_query_params(tab="Build")
-            st.info("Please fill in the missing sections in the Build tab.")
+        story_display_text = f"""
+**Selected Competency:** {comp_choice}
 
-# Automated Feedback Reviewer in Review tab
-with tabs[1]:
-    # ...existing code...
-    if all([s.strip(), t.strip(), a.strip(), r.strip()]):
-        # ...existing code...
-        with right:
-            # ...existing code...
-            if st.button("Get Automated Writing Review", key="ai_review"):
-                review_prompt = f"Review this full STAR story for clarity, conciseness, and impact. Highlight areas for improvement and provide actionable suggestions.\\n\\nSituation:\\n{s}\\n\\nTask:\\n{t}\\n\\nAction:\\n{a}\\n\\nResult:\\n{r}"
-                api_key = st.session_state['gemini_api_key']
-                # Updated URL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
-                # Updated payload
-                data = {"contents": [{"parts": [{"text": review_prompt}]}]}
-                try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
-                    if response.ok:
-                        result = response.json()
-                        # Updated extraction
-                        review_feedback = result['candidates'][0]['content']['parts'][0]['text'].strip()
-                    else:
-                        # Try to parse error for more details
-                        try:
-                            error_details = response.json()
-                            review_feedback = f"[AI Error: {response.status_code} {response.reason} - {error_details.get('error', {}).get('message', response.text)}]"
-                        except json.JSONDecodeError:
-                            review_feedback = f"[AI Error: {response.status_code} {response.reason}: {response.text}]"
-                except Exception as e:
-                    review_feedback = f"[AI Error: {e}]"
+**Interview Question:** {st.session_state.get('q_text', 'Not specified')}
+
+---
+
+#### Situation:
+{current_s if current_s else "_Not yet filled._"}
+
+#### Task:
+{current_t if current_t else "_Not yet filled._"}
+
+#### Action:
+{current_a if current_a else "_Not yet filled._"}
+
+#### Result:
+{current_r if current_r else "_Not yet filled._"}
+"""
+        st.markdown(story_display_text)
+
+    st.markdown("---") # Visual separator
+
+    if st.button("Get Feedback & Score", key="get_feedback_score_button_unified"):
+        if current_s and current_t and current_a and current_r:
+            with st.spinner("Analyzing your story and generating feedback..."):
+                # Ensure comp_choice and q_text are correctly obtained
+                live_comp_choice = comp_choice  # Available from sidebar
+                live_q_text = st.session_state.get('q_text', q_text)  # Available from question selection
+
+                # Populate the story attribute of the unified_coach instance
+                unified_coach.story = {
+                    "situation": current_s,
+                    "task": current_t,
+                    "action": current_a,
+                    "result": current_r,
+                    "competency": live_comp_choice,
+                    "question": live_q_text
+                }
+                
+                # Call the refactored score_story method from UnifiedSTARCoach
+                # It returns: score_str, score_description_str, ai_feedback_str
+                # or (None, None, error_message_str) if an error occurs
+                score_value, score_description, ai_generated_feedback = unified_coach.score_story()
+
+                if score_value is not None: # Indicates scoring part was somewhat successful
+                    st.success(f"Score: {score_value}")
+                    st.info(f"Details: {score_description if score_description else 'No specific scoring details provided.'}")
+                    
+                    if ai_generated_feedback:
+                        # Heuristically check if the feedback string contains common error indicators
+                        is_error_in_feedback = any(err_keyword in ai_generated_feedback.lower() for err_keyword in ["error", "could not", "failed", "unable to process"])
+                        
+                        if is_error_in_feedback and (score_value == "N/A" or not score_value) : # Assuming "N/A" or empty might mean failure
+                            st.error(f"AI Feedback / Error: {ai_generated_feedback}")
+                        elif is_error_in_feedback: # Score might be partially okay, but AI feedback part had issues
+                            st.warning(f"AI Feedback / Issue: {ai_generated_feedback}")
+                        else: # Normal, successful AI feedback
+                            st.markdown("---") 
+                            st.markdown("### OpenAI Powered Feedback:")
+                            st.info(ai_generated_feedback)
+                    # else: ai_generated_feedback is None or empty, but scoring (score_value) was successful.
+                        
+                elif ai_generated_feedback: # score_value is None, but ai_generated_feedback has content (likely an error message)
+                    st.error(f"Could not process your story. Details: {ai_generated_feedback}")
+                else: # All are None or score_value is None and no specific error message in ai_generated_feedback
+                    st.error("An unexpected error occurred while analyzing your story. No score or specific feedback could be retrieved.")
+        else:
+            st.warning("Please fill in all parts of your STAR story (Situation, Task, Action, Result) before getting feedback.")
+    
+    st.markdown("---") 
+    st.markdown("### Automated Writing Review")
+
+    if all([current_s.strip(), current_t.strip(), current_a.strip(), current_r.strip()]):
+        if st.button("Get Automated Writing Review", key="ai_review_consolidated"): # Changed key to avoid potential conflicts
+            review_prompt = f"""/**Review this full STAR story for clarity, conciseness, and impact. Highlight areas for improvement and provide actionable suggestions.**
+
+**Situation:**
+{current_s}
+
+**Task:**
+{current_t}
+
+**Action:**
+{current_a}
+
+**Result:**
+{current_r}"""
+            api_key = st.session_state['gemini_api_key']
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
+            headers = {"Content-Type": "application/json"}
+            data = {"contents": [{"parts": [{"text": review_prompt}]}]}
+            review_feedback = "" # Initialize review_feedback
+            try:
+                response = requests.post(url, headers=headers, json=data, timeout=30)
+                if response.ok:
+                    result = response.json()
+                    review_feedback = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                else:
+                    try:
+                        error_details = response.json()
+                        review_feedback = f"[AI Error: {response.status_code} {response.reason} - {error_details.get('error', {}).get('message', response.text)}]"
+                    except json.JSONDecodeError:
+                        review_feedback = f"[AI Error: {response.status_code} {response.reason}: {response.text}]"
+            except Exception as e:
+                review_feedback = f"[AI Error: {e}]"
+            
+            if review_feedback: # Check if feedback was generated
                 st.markdown("<div style='background:#2a2e38;padding:12px 12px 8px 12px;border-radius:8px;margin-top:10px;'>", unsafe_allow_html=True)
-                st.markdown(f"**Automated Writing Review:**\n\n{review_feedback}")
+                st.markdown(f"**Automated Writing Review:**\\n\\n{review_feedback}")
                 st.markdown("</div>", unsafe_allow_html=True)
+            else:
+                st.warning("Automated writing review could not be generated.")
+    else:
+        st.info("Fill all STAR sections in the 'Build' tab to enable Automated Writing Review.")
+    # --- End of Automated Feedback Reviewer section ---
 
+# The following comment was identified as the end of the previous erroneous 'with tabs[1]' block.
+# Ensure this is the end of the 'with tabs[1]:' block and before any subsequent top-level code or comments.
+
+# The CSS styling part should remain outside and after the tabs block.
 # Improved CSS for chat input: adapts to dark/light mode and fixes white color issues for all textareas
 st.markdown('''
 <style>

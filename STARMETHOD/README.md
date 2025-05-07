@@ -114,7 +114,7 @@ Excessive or inappropriate application of the competency.
 - `star_method_coach.py`: Main program file
 - `star_stories_with_scores.txt`: Saved stories with scores (created when stories are saved)
 - `star_story_builder.py`: Original story builder script
-- `apple_star_builder.py`: Alternative story builder focusing on Apple competencies
+- `role_based_star_builder.py`: Alternative story builder focusing on role-specific competencies
 
 ## About
-This tool combines elements from both the standard STAR method approach and Apple's competency frameworks to provide comprehensive interview preparation assistance. It's designed to help you craft compelling stories that showcase your skills and experience effectively.
+This tool provides comprehensive interview preparation assistance. It's designed to help you craft compelling stories that showcase your skills and experience effectively using the STAR method, with options to focus on general or role-specific competencies.

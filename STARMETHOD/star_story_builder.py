@@ -19,9 +19,9 @@ SUGGESTED_TAGS = {
 
 def print_introduction():
     """Prints the welcome message and STAR explanation."""
-    print("\nWelcome to the Apple Interview STAR Story Builder!")
+    print("\\nWelcome to the Interview STAR Story Builder!")
     print("This program will help you structure your answers using the STAR method.")
-    print("\n**The STAR Method:**")
+    print("\\n**The STAR Method:**")
     print("S - Situation: Describe the context and background.")
     print("T - Task: Explain your responsibility and objectives.")
     print("A - Action: Detail the steps you took to address the situation.")
@@ -182,7 +182,7 @@ def star_story_builder():
                 question = sample_questions[idx - 1]
 
         if question.lower() == 'exit':
-            print("\nThank you for practicing! Good luck with your Apple interview!")
+            print("\\nThank you for practicing! Good luck with your interview!")
             break
 
         if question.lower() == 'samples':

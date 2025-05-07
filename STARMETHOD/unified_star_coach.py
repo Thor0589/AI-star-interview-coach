@@ -4,57 +4,40 @@ Unified STAR Method Coach
 
 A comprehensive program that combines multiple STAR method tools:
 1. General STAR Method Coach with scoring and feedback
-2. Apple Interview STAR Builder with role-specific competencies
-3. Quick STAR Story Builder for simple practice
+2. Quick STAR Story Builder for simple practice
 
 This program helps users prepare for interviews by crafting effective STAR method stories.
 """
 
 import os
-import re
-import datetime
-from collections import defaultdict
-try:
-    from colorama import init, Fore, Style
-    init(autoreset=True)
-    COLORAMA_AVAILABLE = True
-except ImportError:
-    COLORAMA_AVAILABLE = False
-    class DummyColor:
-        RESET = RED = GREEN = YELLOW = CYAN = MAGENTA = BLUE = WHITE = ''
-    Fore = Style = DummyColor()
+import json
+from datetime import datetime
+from colorama import Fore, Style, init
+from openai import OpenAI
 
-
-try:
-    import PyPDF2
-    from PyPDF2 import PdfReader, PdfWriter
-    PDF_SUPPORT = True
-except ImportError:
-    PDF_SUPPORT = False
-    print("PyPDF2 not installed. PDF functionality will be limited.")
-    print("To enable full PDF support, install PyPDF2 with: pip install PyPDF2")
+# Initialize colorama
+init(autoreset=True)
 
 
 class UnifiedSTARCoach:
     """
     A comprehensive STAR method interview preparation tool that combines:
     1. General STAR Method coaching with scoring and feedback
-    2. Apple-specific STAR story building with competency frameworks
-    3. Simple STAR story building for quick practice
+    2. Simple STAR story building for quick practice
     """
     
-    def __init__(self):
+    def __init__(self, competency_file='competencies.json'): # Retaining competency_file for potential future use
         """Initialize the Unified STAR Coach with all competency frameworks and scoring criteria."""
-        # Load competency frameworks
-        self.general_competencies = self.load_general_competencies()
-        self.apple_competency_data = self.load_apple_competencies()
+        init(autoreset=True)  # Initialize colorama
+        self.api_client = OpenAI()  # Initialize OpenAI client
         
-        # Initialize story data
-        self.story = {}
-        self.current_competency = None
-        self.current_role = None
+        # Load general competencies by calling the method defined in the class
+        self.general_competencies = self.load_general_competencies() 
         
-        # Scoring criteria from star_method_coach.py
+        self.stories = []
+        self.current_story = {}
+
+        # Scoring criteria
         self.scoring_criteria = {
             "Talented": {
                 "description": "Exceptional demonstration of the competency, going beyond expectations",
@@ -99,378 +82,82 @@ class UnifiedSTARCoach:
         }
     
     def load_general_competencies(self):
-        """Load general competencies and associated interview questions from star_method_coach.py."""
+        """Loads general competencies from a structured format (e.g., JSON, YAML, or Python dict)."""
+        # This is a placeholder. In a real application, you'd load this from a file.
         return {
-            "Action Oriented": {
-                "description": "Taking on new opportunities and tough challenges with a sense of urgency, high energy, and enthusiasm.",
-                "questions": [
-                    "Explain what you did when faced with a difficult and urgent problem.",
-                    "Tell me about a time you had to take over someone else's challenging project.",
-                    "Tell me about a situation that required an enormous amount of energy and effort.",
-                    "Describe a time you seized an opportunity and moved forward with purpose.",
-                    "Tell me about a time you were the first person to take action on something."
-                ],
-                "skilled_signs": [
-                    "Readily takes action on challenges, without unnecessary planning",
-                    "Identifies and seizes new opportunities",
-                    "Displays a can-do attitude in good and bad times",
-                    "Steps up to handle tough issues"
-                ],
-                "unskilled_signs": [
-                    "Is slow to act on an opportunity",
-                    "Spends too much time planning and looking for information",
-                    "May be overly methodical, taking too long to act on a problem",
-                    "Is reluctant to step up to challenges; waits for someone else to take action"
+            "Problem Solving": {
+                "description": "Identifies and resolves problems in a timely manner; Gathers and analyzes information skillfully; Develops alternative solutions; Works well in group problem-solving situations.",
+                "scoring_criteria": {
+                    "Clarity of Problem Definition": "Did the user clearly define the problem they were facing?",
+                    "Analysis of Root Cause": "Did the user analyze the root cause of the problem effectively?",
+                    "Generation of Solutions": "Did the user generate multiple viable solutions?",
+                    "Decision-Making Process": "Was the decision-making process for selecting a solution sound?",
+                    "Implementation of Solution": "Was the solution implemented effectively?",
+                    "Impact of Solution": "What was the measurable impact of the solution?"
+                },
+                "example_questions": [
+                    "Describe a complex problem you had to solve. How did you approach it?",
+                    "Tell me about a time you identified a potential problem and took steps to prevent it."
                 ]
             },
-            "Being Resilient": {
-                "description": "Rebounding from setbacks and adversity when facing difficult situations.",
-                "questions": [
-                    "Describe a crisis you had to handle.",
-                    "Give me an example of how you managed an emergency situation.",
-                    "Tell me about a time when you felt under extreme pressure but managed to carry on.",
-                    "Tell me about a time when a project or initiative seemed like it was going nowhere.",
-                    "Tell me about a time when someone or something caught you by surprise and caused you to be blocked."
-                ],
-                "skilled_signs": [
-                    "Is confident under pressure",
-                    "Handles and manages crises effectively",
-                    "Maintains a positive attitude despite adversity",
-                    "Bounces back from setbacks",
-                    "Grows from hardships and negative experiences"
-                ],
-                "unskilled_signs": [
-                    "Gets easily rattled in high-pressure situations",
-                    "Exhibits low energy and motivation during times of stress and worry",
-                    "Acts defensively when faced with criticism or roadblocks",
-                    "Takes too long to recover from setbacks"
+            "Teamwork": {
+                "description": "Balances team and individual responsibilities; Exhibits objectivity and openness to others' views; Gives and welcomes feedback; Contributes to building a positive team spirit; Puts success of team above own interests.",
+                "scoring_criteria": {
+                    "Collaboration with Others": "Did the user effectively collaborate with team members?",
+                    "Contribution to Team Goals": "How did the user's actions contribute to team goals?",
+                    "Handling of Conflict (if any)": "If there was conflict, how was it handled?",
+                    "Support of Team Members": "Did the user support other team members?",
+                    "Communication within Team": "Was communication within the team clear and effective?"
+                },
+                "example_questions": [
+                    "Tell me about a time you worked effectively as part of a team.",
+                    "Describe a situation where you had to work with a difficult team member."
                 ]
             },
-            "Collaborates": {
-                "description": "Building partnerships and working collaboratively with others to meet shared objectives.",
-                "questions": [
-                    "Tell me about a time when you built strong relationships where none previously existed.",
-                    "Describe a time you had to build partnerships to achieve a shared objective.",
-                    "Tell me about a successful experience you had implementing something across organizational boundaries.",
-                    "Describe a time when a team or group did not get their share of credit.",
-                    "Tell me about a time you succeeded in an initiative by collaborating with others."
-                ],
-                "skilled_signs": [
-                    "Works cooperatively with others across the organization to achieve shared objectives",
-                    "Represents own interests while being fair to others and their areas",
-                    "Partners with others to get work done and recognizes their contributions",
-                    "Gains trust and support of others"
-                ],
-                "unskilled_signs": [
-                    "Overlooks opportunities to work collaboratively with others",
-                    "Puts own interests above others'",
-                    "Shuts down lines of communication across groups",
-                    "Prefers to work alone and be accountable only for individual contributions"
+            "Communication": {
+                "description": "Speaks clearly and persuasively in positive or negative situations; Listens and gets clarification; Responds well to questions; Demonstrates group presentation skills; Writes clearly and informatively.",
+                "scoring_criteria": {
+                    "Clarity of Communication": "Was the information conveyed clearly and concisely?",
+                    "Audience Awareness": "Did the user tailor their communication to the audience?",
+                    "Listening Skills": "Did the user demonstrate good listening skills?",
+                    "Non-Verbal Communication (if applicable)": "How was non-verbal communication used?",
+                    "Impact of Communication": "What was the outcome of the communication?"
+                },
+                "example_questions": [
+                    "Describe a time you had to explain a complex topic to someone with less expertise.",
+                    "Tell me about a situation where your communication skills made a difference."
                 ]
             },
-            "Communicates Effectively": {
-                "description": "Developing and delivering multi-mode communications that convey a clear understanding of the unique needs of different audiences.",
-                "questions": [
-                    "Tell me about a time when you had to explain something important to someone who did not understand your industry or function's language or work.",
-                    "Describe the best presentation you've ever given.",
-                    "Tell me about a time when others were missing the key points in a discussion and you helped get things back on track.",
-                    "Tell me about a time you had to shut off a person in the middle of a meeting or who was talking too much or interrupting.",
-                    "Describe a time you had to convey the same message through different methods of communication."
-                ],
-                "skilled_signs": [
-                    "Is effective in a variety of communication settings",
-                    "Attentively listens to others",
-                    "Adjusts to fit the audience and the message",
-                    "Provides timely and helpful information to others",
-                    "Encourages the open expression of diverse ideas and opinions"
-                ],
-                "unskilled_signs": [
-                    "Has difficulty communicating clear written and verbal messages",
-                    "Tends to always communicate the same way without adjusting to diverse audiences",
-                    "Doesn't take the time to listen or understand others' viewpoints",
-                    "Doesn't consistently share information others need to do their jobs"
+            "Leadership": {
+                "description": "Inspires and motivates others to perform well; Effectively influences actions and opinions of others; Accepts feedback from others; Gives appropriate recognition to others.",
+                "scoring_criteria": {
+                    "Vision and Goal Setting": "Did the user articulate a clear vision or set clear goals?",
+                    "Motivation of Others": "How did the user motivate others?",
+                    "Decision Making": "Were decisions made effectively and in a timely manner?",
+                    "Delegation (if applicable)": "How was delegation handled?",
+                    "Conflict Resolution": "How were conflicts within the team resolved?"
+                },
+                "example_questions": [
+                    "Tell me about a time you took a leadership role.",
+                    "Describe a situation where you had to motivate a team or individual."
                 ]
             },
-            "Customer Focus": {
-                "description": "Building strong customer relationships and delivering customer-centric solutions.",
-                "questions": [
-                    "Describe a time you obtained up-to-date information from a customer, and what you did with it.",
-                    "Tell me about a time when you went the extra mile for a challenging customer.",
-                    "Tell me about a time you were confronted with an internal or external customer problem.",
-                    "Tell me about a time when you almost lost a customer and had to win them back.",
-                    "Tell me about a time when you changed your approach to better meet a customer's needs."
-                ],
-                "skilled_signs": [
-                    "Gains insight into customer needs",
-                    "Identifies opportunities that benefit both the customer and the organization",
-                    "Builds and delivers solutions that meet customer expectations",
-                    "Establishes and maintains effective customer relationships"
-                ],
-                "unskilled_signs": [
-                    "Thinks they already know what the customer needs",
-                    "Doesn't consider customer feedback important",
-                    "Doesn't dedicate enough time to building relationships with customers",
-                    "Focuses on internal activities instead of the customer"
-                ]
-            },
-            "Decision Quality": {
-                "description": "Making good and timely decisions that keep the organization moving forward.",
-                "questions": [
-                    "Describe a time you had to make a quick decision and gather a lot of information in a short time frame.",
-                    "Give me an example of a difficult problem you worked on and walk me through your decision-making process.",
-                    "Describe a time when you made a major decision and were really pleased with the outcome.",
-                    "Tell me about a quick decision you made that turned out to be a good one.",
-                    "Describe a time when you received useful feedback on a decision you made."
-                ],
-                "skilled_signs": [
-                    "Makes sound decisions, even in the absence of complete information",
-                    "Relies on experience, analysis, and judgment when making decisions",
-                    "Considers all relevant factors and uses appropriate decision-making criteria",
-                    "Recognizes when a quick 80% solution will suffice"
-                ],
-                "unskilled_signs": [
-                    "Approaches decisions haphazardly or delays decision making",
-                    "Makes decisions based on incomplete data or inaccurate assumptions",
-                    "Ignores different points of view",
-                    "Makes decisions that impact short-term results at the expense of longer-term goals"
-                ]
-            },
-            "Drives Results": {
-                "description": "Consistently achieving results, even under tough circumstances.",
-                "questions": [
-                    "Describe a time you championed a cause that others had abandoned.",
-                    "Tell me about a time you got results that far exceeded your own expectations.",
-                    "Tell me about a time you got results even though some major factor changed, such as a budget cut.",
-                    "Describe a time when you drove yourself harder than you were driving others.",
-                    "Talk about a time you were assigned to a fix-it or turnaround project."
-                ],
-                "skilled_signs": [
-                    "Has a strong bottom-line orientation",
-                    "Persists in accomplishing objectives despite obstacles and setbacks",
-                    "Has a track record of exceeding goals successfully",
-                    "Pushes self and helps others achieve results"
-                ],
-                "unskilled_signs": [
-                    "Is reluctant to push for results",
-                    "Does the least to get by",
-                    "Is an inconsistent performer",
-                    "Gives up easily",
-                    "Often misses deadlines"
-                ]
-            },
-            "Strategic Mindset": {
-                "description": "Seeing ahead to future possibilities and translating them into breakthrough strategies.",
-                "questions": [
-                    "Give me an example of working with a team and creating a new vision and strategy.",
-                    "Give me an example of exploring various scenarios and possibilities when charting a course for the future.",
-                    "Tell me about a time when your strategic vision or big-picture thinking was an asset.",
-                    "Tell me about a time you were implementing a strategy and had to revise it mid-process due to changes in the environment.",
-                    "Describe a time you had to develop a strategy that would create value for your organization or customers."
-                ],
-                "skilled_signs": [
-                    "Anticipates future trends and implications accurately",
-                    "Readily poses future scenarios",
-                    "Articulates credible pictures and visions of possibilities",
-                    "Creates competitive and breakthrough strategies"
-                ],
-                "unskilled_signs": [
-                    "Is more comfortable in the tactical here and now",
-                    "Spends little time thinking about strategic issues",
-                    "Contributes little to strategic discussions",
-                    "Lacks the disciplined thought processes to develop a coherent view"
+            "Adaptability": {
+                "description": "Adapts to changes in the work environment; Manages competing demands; Changes approach or method to best fit the situation; Deals with frequent change, delays, or unexpected events.",
+                "scoring_criteria": {
+                    "Response to Change": "How did the user respond to unexpected changes or challenges?",
+                    "Flexibility": "Did the user demonstrate flexibility in their approach?",
+                    "Problem Solving under Pressure": "How did the user handle problem-solving under pressure?",
+                    "Learning from Experience": "Did the user learn from the experience and adapt for the future?"
+                },
+                "example_questions": [
+                    "Tell me about a time you had to adapt to a significant change at work.",
+                    "Describe a situation where you had to change your approach mid-project."
                 ]
             }
         }
     # End of load_general_competencies
 
-    def load_apple_competencies(self):
-        """Load Apple's competencies for different roles."""
-        # Try to load from PDFs if PyPDF2 is available
-        if PDF_SUPPORT:
-            try:
-                return self.load_apple_competencies_from_pdfs()
-            except Exception as e:
-                print(f"Error loading Apple competencies from PDFs: {e}")
-                print("Falling back to built-in competency data")
-        
-        # Fallback to built-in data
-        return self.load_apple_competencies_fallback()
-    
-    def load_apple_competencies_from_pdfs(self):
-        """
-        Load Apple's competencies from PDF files in the directory.
-        Returns a dictionary mapping roles to their competencies and descriptions.
-        """
-        competencies = defaultdict(list)
-        competency_details = {}
-        
-        # Path to directory containing PDFs
-        pdf_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # First, try to parse the Roles/Competencies.pdf for role mappings
-        roles_pdf_path = os.path.join(pdf_dir, "Roles:Competencies.pdf")
-        if not os.path.exists(roles_pdf_path):
-            # Try alternative path formats
-            roles_pdf_path = os.path.join(pdf_dir, "Roles", "Competencies.pdf")
-            if not os.path.exists(roles_pdf_path):
-                roles_pdf_path = os.path.join(pdf_dir, "Roles_Competencies.pdf")
-        
-        if os.path.exists(roles_pdf_path):
-            try:
-                with open(roles_pdf_path, 'rb') as f:
-                    pdf_reader = PyPDF2.PdfReader(f)
-                    text = ""
-                    for page in pdf_reader.pages:
-                        text += page.extract_text()
-                    
-                    # Look for role headings and their associated competencies
-                    role_pattern = r'([A-Za-z\s]+) Role:?'
-                    roles = re.findall(role_pattern, text)
-                    
-                    for role in roles:
-                        role_clean = role.strip()
-                        # Find the section for this role
-                        role_section_pattern = f"{role}[\\s]*Role:?([\\s\\S]*?)(?=(?:[A-Za-z\\s]+Role:?)|$)"
-                        role_section_match = re.search(role_section_pattern, text)
-                        
-                        if role_section_match:
-                            role_text = role_section_match.group(1)
-                            # Extract competencies, adjust pattern based on PDF formatting
-                            comp_pattern = r'[•\-★]\s*([A-Za-z\s\-]+)(?::|$)'
-                            role_competencies = re.findall(comp_pattern, role_text)
-                            competencies[role_clean] = [comp.strip() for comp in role_competencies if comp.strip()]
-            except Exception as e:
-                print(f"Error parsing roles PDF: {e}")
-        
-        # Then parse individual competency PDFs for detailed descriptions
-        for root, _, files in os.walk(pdf_dir):
-            for file in files:
-                if file.endswith('.pdf') and file != "Competencies.pdf":
-                    try:
-                        competency_name = os.path.splitext(file)[0].replace('_', ' ')
-                        pdf_path = os.path.join(root, file)
-                        
-                        with open(pdf_path, 'rb') as f:
-                            pdf_reader = PyPDF2.PdfReader(f)
-                            text = ""
-                            for page in pdf_reader.pages:
-                                text += page.extract_text()
-                            
-                            # Extract description, situation examples, etc.
-                            description_match = re.search(r'Description:(.*?)(?=Situation|$)', text, re.DOTALL)
-                            situation_match = re.search(r'Situation Examples:(.*?)(?=Task|$)', text, re.DOTALL)
-                            task_match = re.search(r'Task Examples:(.*?)(?=Action|$)', text, re.DOTALL)
-                            action_match = re.search(r'Action Examples:(.*?)(?=Result|$)', text, re.DOTALL)
-                            result_match = re.search(r'Result Examples:(.*?)(?=$)', text, re.DOTALL)
-                            
-                            competency_details[competency_name] = {
-                                'description': description_match.group(1).strip() if description_match else "",
-                                'situation': situation_match.group(1).strip() if situation_match else "",
-                                'task': task_match.group(1).strip() if task_match else "",
-                                'action': action_match.group(1).strip() if action_match else "",
-                                'result': result_match.group(1).strip() if result_match else ""
-                            }
-                    except Exception as e:
-                        print(f"Could not process {file}: {e}")
-        
-        # If we didn't find any roles or competencies, fall back to hardcoded values
-        if not competencies:
-            return self.load_apple_competencies_fallback()
-        
-        return {
-            'roles_competencies': dict(competencies),
-            'competency_details': competency_details
-        }
-    
-    def load_apple_competencies_fallback(self):
-        """Fallback function that returns accurate Apple competencies if PDF parsing fails."""
-        return {
-            'roles_competencies': {
-                "Technical Specialist": [
-                    "Customer Focus",
-                    "Manages Ambiguity",
-                    "Tech Savvy",
-                    "Action Oriented",
-                    "Manages Conflict",
-                    "Manages Complexity"
-                ],
-                "Technical Expert": [
-                    "Drives Results",
-                    "Communicates Effectively",
-                    "Tech Savvy",
-                    "Decision Quality",
-                    "Manages Complexity",
-                    "Collaborates"
-                ],
-                "Genius": [
-                    "Being Resilient",
-                    "Decision Quality",
-                    "Tech Savvy",
-                    "Action Oriented",
-                    "Situational Adaptability",
-                    "Managing Complexity"
-                ],
-                "Software Engineer": [
-                    "Technical Problem Solving",
-                    "Innovation",
-                    "Collaboration",
-                    "Communication",
-                    "Customer Focus"
-                ],
-                "Product Manager": [
-                    "Strategic Thinking",
-                    "User-Centered Design",
-                    "Cross-Functional Leadership",
-                    "Business Acumen",
-                    "Execution Excellence"
-                ],
-                "UX Designer": [
-                    "User Empathy",
-                    "Design Thinking",
-                    "Visual Communication",
-                    "Prototyping Skills",
-                    "Collaborative Problem Solving"
-                ],
-                "Data Scientist": [
-                    "Analytical Thinking",
-                    "Statistical Modeling",
-                    "Programming Skills",
-                    "Business Impact",
-                    "Communication of Complex Ideas"
-                ]
-            },
-            'competency_details': {
-                "Customer Focus": {
-                    "description": "Building strong customer relationships and delivering customer-centric solutions.",
-                    "situation": "Look for situations where you identified customer needs or addressed customer issues.",
-                    "task": "Focus on tasks where you were responsible for improving customer experience or satisfaction.",
-                    "action": "Highlight actions that demonstrate how you listened to customers and tailored solutions.",
-                    "result": "Emphasize measurable improvements in customer satisfaction, retention, or feedback."
-                },
-                "Tech Savvy": {
-                    "description": "Anticipating and adopting innovations in business-building digital and technology applications.",
-                    "situation": "Describe situations requiring technical innovation or digital solutions.",
-                    "task": "Explain your responsibility to implement or leverage technology effectively.",
-                    "action": "Detail how you researched, learned, or applied new technologies.",
-                    "result": "Quantify the impact of your technical solution on efficiency, performance, or user experience."
-                },
-                "Technical Problem Solving": {
-                    "description": "Applying analytical thinking to break down complex technical problems and develop effective solutions.",
-                    "situation": "Describe complex technical challenges you faced.",
-                    "task": "Explain the technical requirements and constraints you needed to work within.",
-                    "action": "Detail your systematic approach to analyzing and solving the problem.",
-                    "result": "Quantify improvements in performance, reliability, or other technical metrics."
-                },
-                "Innovation": {
-                    "description": "Developing breakthrough ideas and implementing them to create value.",
-                    "situation": "Describe situations requiring creative thinking or novel approaches.",
-                    "task": "Explain why conventional solutions wouldn't work for your task.",
-                    "action": "Detail your creative process and how you developed your innovative solution.",
-                    "result": "Highlight how your innovation created value or solved problems in new ways."
-                }
-            }
-        }
-    
     def run(self):
         """Main execution method for the Unified STAR Coach."""
         self.print_welcome_message()
@@ -478,39 +165,38 @@ class UnifiedSTARCoach:
             print("\n" + "="*80)
             print("What would you like to do?")
             print("1. General STAR Method Coach (with scoring and feedback)")
-            print("2. Apple Interview STAR Builder (role-specific competencies)")
-            print("3. Quick STAR Story Builder (simple practice)")
-            print("4. Review a saved STAR story")
-            print("5. Load and display a saved STAR story")
-            print("6. Exit")
-            choice = input("\nEnter your choice (1-6): ")
+            print("2. Quick STAR Story Builder (simple practice)")
+            print("3. Review a saved STAR story")
+            print("4. Load and display a saved STAR story")
+            print("5. Exit")
+            choice = input("\nEnter your choice (1-5): ")
+
             if choice == '1':
                 self.run_general_coach()
             elif choice == '2':
-                self.run_apple_coach()
-            elif choice == '3':
                 self.run_quick_builder()
-            elif choice == '4':
+            elif choice == '3':
                 self.review_saved_stories()
-            elif choice == '5':
+            elif choice == '4':
                 self.load_story()
-            elif choice == '6':
+            elif choice == '5':
                 print("\nThank you for using the Unified STAR Method Coach. Good luck with your interviews!")
                 break
             else:
-                print("Invalid choice. Please try again.")
-    
+                print("Invalid choice. Please enter a number between 1 and 5.")
+
     def print_welcome_message(self):
-        """Display the welcome message and introduction to the STAR Method with color formatting."""
-        print("\n" + Fore.CYAN + "="*80 + Style.RESET_ALL)
-        print(Fore.GREEN + "Welcome to the Unified STAR Method Interview Coach!" + Style.RESET_ALL)
-        print("This program combines multiple STAR method tools to help you prepare for interviews.")
-        print("\nThe STAR Method stands for:")
-        print(Fore.YELLOW + "S - Situation:" + Style.RESET_ALL + " Set the scene and provide context.")
-        print(Fore.YELLOW + "T - Task:" + Style.RESET_ALL + " Explain your responsibility or challenge.")
-        print(Fore.YELLOW + "A - Action:" + Style.RESET_ALL + " Detail the specific steps you took.")
-        print(Fore.YELLOW + "R - Result:" + Style.RESET_ALL + " Share the outcomes of your actions and what you learned.")
-    
+        """Prints the welcome message for the Unified STAR Coach."""
+        print("="*80)
+        print("🌟 WELCOME TO THE UNIFIED STAR METHOD INTERVIEW COACH! 🌟")
+        print("="*80)
+        print("This coach helps you practice and refine your interview stories using the STAR method.")
+        print("You can choose between:")
+        print("  - General STAR Coaching: Get feedback on stories for common competencies.")
+        print("  - Quick Story Building: Quickly draft stories without immediate detailed feedback.")
+        print("  - Story Review: Load and review your previously saved stories.")
+        print("\nLet's begin!")
+
     #
     # General STAR Method Coach (from star_method_coach.py)
     #
@@ -518,116 +204,13 @@ class UnifiedSTARCoach:
         """Run the general STAR method coach with scoring and feedback."""
         print("\n" + "="*80)
         print("GENERAL STAR METHOD COACH")
-        print("This mode helps you craft and score interview stories based on competencies.")
-        
-        while True:
-            print("\n" + "="*60)
-            print("What would you like to do?")
-            print("1. Select a competency and interview question")
-            print("2. Craft a STAR story")
-            print("3. Review and score an existing story")
-            print("4. Return to main menu")
-            
-            choice = input("\nEnter your choice (1-4): ")
-            
-            if choice == '1':
-                self.select_competency_and_question()
-            elif choice == '2':
-                self.craft_star_story()
-            elif choice == '3':
-                self.review_and_score_story()
-            elif choice == '4':
-                break
-            else:
-                print("Invalid choice. Please try again.")
-    
-    def select_competency_and_question(self):
-        """Guide the user to select a competency and related interview question, with back/exit options."""
-        print("\n" + "="*60)
-        print("STEP 1: SELECT A COMPETENCY AND INTERVIEW QUESTION")
-        print("\nAvailable competencies:")
-        competency_list = list(self.general_competencies.keys())
-        for i, competency in enumerate(competency_list, 1):
-            print(f"{i}. {competency}: {self.general_competencies[competency]['description']}")
-        while True:
-            user_input = input("\nSelect a competency (enter number, or type 'back' or 'exit'): ").strip().lower()
-            if user_input == 'exit':
-                exit()
-            if user_input == 'back':
-                return
-            try:
-                comp_idx = int(user_input) - 1
-                if 0 <= comp_idx < len(competency_list):
-                    self.current_competency = competency_list[comp_idx]
-                    break
-                else:
-                    print(f"Please enter a number between 1 and {len(competency_list)}.")
-            except ValueError:
-                print("Please enter a valid number, 'back', or 'exit'.")
-        print(f"\nInterview questions for '{self.current_competency}':")
-        questions = self.general_competencies[self.current_competency]['questions']
-        for i, question in enumerate(questions, 1):
-            print(f"{i}. {question}")
-        print("\nSelect an interview question from the list above, or enter '0' to provide your own:")
-        while True:
-            user_input = input("Enter your choice (number, 'back', or 'exit'): ").strip().lower()
-            if user_input == 'exit':
-                exit()
-            if user_input == 'back':
-                return self.select_competency_and_question()
-            try:
-                q_idx = int(user_input)
-                if 1 <= q_idx <= len(questions):
-                    self.story['question'] = questions[q_idx - 1]
-                    break
-                elif q_idx == 0:
-                    custom_q = input("Enter your custom interview question (or type 'back' or 'exit'): ").strip()
-                    if custom_q.lower() == 'exit':
-                        exit()
-                    if custom_q.lower() == 'back':
-                        continue
-                    self.story['question'] = custom_q
-                    break
-                else:
-                    print(f"Please enter a number between 0 and {len(questions)}.")
-            except ValueError:
-                print("Please enter a valid number, 'back', or 'exit'.")
-        # Store the selected competency
-        self.story['competency'] = self.current_competency
-        print(f"\nYou've selected: {self.story['competency']}")
-        print(f"Interview Question: {self.story['question']}")
-        # Offer to show an example STAR story
-        show_example = input("Would you like to see an example STAR story for this competency? (yes/no): ").strip().lower()
-        if show_example in ['yes', 'y']:
-            self.display_example_star_story(self.current_competency)
-        print("Now you're ready to craft your STAR story!")
+        print("This mode helps you craft and get feedback on STAR stories for general competencies.")
 
-    def run_apple_coach(self):
-        """Run the Apple Interview STAR Builder (role-specific competencies)."""
-        print("\n" + "="*80)
-        print("APPLE INTERVIEW STAR BUILDER")
-        print("This mode helps you craft STAR stories for Apple interviews using role-specific competencies.")
-        roles = list(self.apple_competency_data['roles_competencies'].keys())
-        if not roles:
-            print("No Apple roles found. Please check your competency data.")
-            return
-        print("\nAvailable Apple roles:")
-        for i, role in enumerate(roles, 1):
-            print(f"{i}. {role}")
-        while True:
-            try:
-                role_idx = int(input("\nSelect a role (enter number): ")) - 1
-                if 0 <= role_idx < len(roles):
-                    self.current_role = roles[role_idx]
-                    break
-                else:
-                    print(f"Please enter a number between 1 and {len(roles)}.")
-            except ValueError:
-                print("Please enter a valid number.")
-        competencies = self.apple_competency_data['roles_competencies'][self.current_role]
-        print(f"\nCompetencies for '{self.current_role}':")
+        competencies = list(self.general_competencies.keys())
+        print("\nAvailable competencies:")
         for i, comp in enumerate(competencies, 1):
             print(f"{i}. {comp}")
+
         while True:
             try:
                 comp_idx = int(input("\nSelect a competency (enter number): ")) - 1
@@ -638,23 +221,28 @@ class UnifiedSTARCoach:
                     print(f"Please enter a number between 1 and {len(competencies)}.")
             except ValueError:
                 print("Please enter a valid number.")
-        details = self.apple_competency_data.get('competency_details', {}).get(self.current_competency, {})
+
         print(f"\nSelected Competency: {self.current_competency}")
-        if details:
-            print(f"Description: {details.get('description', 'No description available.')}")
-            print(f"Situation: {details.get('situation', 'N/A')}")
-            print(f"Task: {details.get('task', 'N/A')}")
-            print(f"Action: {details.get('action', 'N/A')}")
-            print(f"Result: {details.get('result', 'N/A')}")
-        else:
-            print("No detailed information available for this competency.")
-        print("\nNow you're ready to craft your STAR story for this Apple role and competency!")
-        # Set up the story dict for Apple context and launch STAR crafting
+        comp_details = self.general_competencies[self.current_competency]
+        print(f"Description: {comp_details['description']}")
+
+        # Display example questions for the selected competency
+        if comp_details.get('example_questions'):
+            print("\nExample interview questions for this competency:")
+            for q_example in comp_details['example_questions']:
+                print(f"- {q_example}")
+        
+        # Optionally, display a full example STAR story for this competency
+        if input("\nWould you like to see an example STAR story for this competency? (yes/no): ").lower() in ['yes', 'y']:
+            self.display_example_star_story(self.current_competency)
+        print("Now you're ready to craft your STAR story!")
+        # Set up the story dict for general context and launch STAR crafting
         self.story = {
             'competency': self.current_competency,
-            'question': f"Apple Interview: {self.current_competency} ({self.current_role})",
+            'question': input("\nEnter the interview question you are answering: ")
         }
         self.craft_star_story()
+        self.provide_feedback_and_score() # Provide feedback after crafting
 
     def run_quick_builder(self):
         """Run the Quick STAR Story Builder for simple practice."""
@@ -675,23 +263,21 @@ class UnifiedSTARCoach:
 
     def save_story(self, story=None):
         """Save the current or provided STAR story as a JSON file in the Stories directory."""
-        import json
-        from pathlib import Path
         if story is None:
             story = self.story
         if not story or not all([story.get('situation'), story.get('task'), story.get('action'), story.get('result'), story.get('competency'), story.get('question')]):
             print("\nCannot save an incomplete story.")
             return
-        story['timestamp'] = datetime.datetime.now().isoformat()
-        save_dir = Path("Stories")
-        save_dir.mkdir(exist_ok=True)
+        story['timestamp'] = datetime.now().isoformat()
+        save_dir = "Stories"
+        os.makedirs(save_dir, exist_ok=True)
         safe_question = "_".join(story['question'].split()).replace("?", "")
         safe_comp = "_".join(story['competency'].split())
-        filename = save_dir / f"{safe_question}_{safe_comp}.json"
+        filename = os.path.join(save_dir, f"{safe_question}_{safe_comp}.json")
         # If JSON exists, load list; else start new
-        if filename.exists():
+        if os.path.exists(filename):
             try:
-                with filename.open("r", encoding="utf-8") as fh:
+                with open(filename, "r", encoding="utf-8") as fh:
                     data = json.load(fh)
                 if not isinstance(data, list):
                     data = [data]
@@ -700,24 +286,23 @@ class UnifiedSTARCoach:
         else:
             data = []
         data.append(story)
-        with filename.open("w", encoding="utf-8") as fh:
+        with open(filename, "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=2, ensure_ascii=False)
         print(f"\nStory saved to {filename}")
 
     def list_saved_stories(self):
         """List all saved STAR stories in the Stories directory."""
-        from pathlib import Path
-        save_dir = Path("Stories")
-        if not save_dir.exists():
+        save_dir = "Stories"
+        if not os.path.exists(save_dir):
             print("No saved stories found.")
             return []
-        files = list(save_dir.glob("*.json"))
+        files = [f for f in os.listdir(save_dir) if f.endswith('.json')]
         if not files:
             print("No saved stories found.")
             return []
         print("\nSaved STAR Stories:")
         for idx, file in enumerate(files, 1):
-            print(f"{idx}. {file.name}")
+            print(f"{idx}. {file}")
         return files
 
     def load_story(self):
@@ -728,8 +313,7 @@ class UnifiedSTARCoach:
         try:
             idx = int(input("\nEnter the number of the story to load: ")) - 1
             if 0 <= idx < len(files):
-                import json
-                with open(files[idx], "r", encoding="utf-8") as fh:
+                with open(os.path.join("Stories", files[idx]), "r", encoding="utf-8") as fh:
                     data = json.load(fh)
                 # Show the most recent story in the file
                 story = data[-1] if isinstance(data, list) else data
@@ -749,8 +333,7 @@ class UnifiedSTARCoach:
         try:
             idx = int(input("\nEnter the number of the story to review: ")) - 1
             if 0 <= idx < len(files):
-                import json
-                with open(files[idx], "r", encoding="utf-8") as fh:
+                with open(os.path.join("Stories", files[idx]), "r", encoding="utf-8") as fh:
                     data = json.load(fh)
                 story = data[-1] if isinstance(data, list) else data
                 self.story = story
@@ -761,109 +344,213 @@ class UnifiedSTARCoach:
             print(f"Error reviewing story: {e}")
 
     def score_story(self):
-        """Score the STAR story based on competency criteria and provide actionable feedback."""
+        """
+        Scores the STAR story in self.story based on competency criteria 
+        and provides actionable feedback including AI suggestions.
+        Expects self.story to be populated with:
+        'situation', 'task', 'action', 'result', 'competency', 'question'.
+        Returns a tuple: (score_str, score_description_str, ai_feedback_str)
+        or (None, None, error_message_str) if scoring cannot proceed.
+        """
         story = self.story
-        if not story or not all([story.get('situation'), story.get('task'), story.get('action'), story.get('result'), story.get('competency')]):
-            print("\nCannot score an incomplete story.")
-            return
-        print("\n" + "="*80)
-        print("STORY ASSESSMENT")
+        if not story:
+            return None, None, "Story object not found in coach."
+
+        required_keys = ['situation', 'task', 'action', 'result', 'competency', 'question']
+        missing_keys = [key for key in required_keys if not story.get(key)] # Checks for presence and non-empty
+        if missing_keys:
+            return None, None, f"Cannot score story: The following keys are missing or empty: {', '.join(missing_keys)}."
+
         competency = story['competency']
-        situation_length = len(story['situation'].split())
-        action_length = len(story['action'].split())
-        result_length = len(story['result'].split())
-        has_quantifiable_results = any(char.isdigit() for char in story['result'])
-        personal_action = ('i ' in story['action'].lower() or 'my ' in story['action'].lower() or 'me ' in story['action'].lower())
-        skilled_signs = self.general_competencies[competency]['skilled_signs']
-        unskilled_signs = self.general_competencies[competency]['unskilled_signs']
-        skilled_alignment = sum(1 for sign in skilled_signs if any(word in story['action'].lower() or word in story['result'].lower() for word in sign.lower().split()))
-        unskilled_alignment = sum(1 for sign in unskilled_signs if any(word in story['action'].lower() or word in story['result'].lower() for word in sign.lower().split()))
-        score = "Skilled"
+
+        if competency not in self.general_competencies:
+            return None, None, f"Error: Competency '{competency}' not recognized for scoring. Available competencies: {list(self.general_competencies.keys())}"
+
+        # Scoring logic based on story components
+        situation_text = story.get('situation', '')
+        action_text = story.get('action', '')
+        result_text = story.get('result', '')
+
+        situation_length = len(situation_text.split())
+        action_length = len(action_text.split())
+        result_length = len(result_text.split())
+        has_quantifiable_results = any(char.isdigit() for char in result_text)
+        
+        personal_action_lower = action_text.lower()
+        personal_action = ('i ' in personal_action_lower or 
+                           'my ' in personal_action_lower or 
+                           'me ' in personal_action_lower)
+
+        # Safely get skilled_signs and unskilled_signs
+        competency_details = self.general_competencies[competency]
+        skilled_signs = competency_details.get('skilled_signs', [])
+        unskilled_signs = competency_details.get('unskilled_signs', [])
+
+        skilled_alignment = 0
+        if skilled_signs: # Only calculate if skilled_signs are defined
+            skilled_alignment = sum(1 for sign in skilled_signs if any(word in action_text.lower() or word in result_text.lower() for word in sign.lower().split()))
+        
+        unskilled_alignment = 0
+        if unskilled_signs: # Only calculate if unskilled_signs are defined
+            unskilled_alignment = sum(1 for sign in unskilled_signs if any(word in action_text.lower() or word in result_text.lower() for word in sign.lower().split()))
+        
+        # Determine score
+        score = "Skilled"  # Default score
         if situation_length < 20 or action_length < 30 or result_length < 20:
             score = "Unskilled"
         elif not personal_action:
             score = "Unskilled"
-        elif not has_quantifiable_results:
-            score = "Skilled"
-        elif action_length > 200 and result_length < 50:
+        elif action_length > 200 and result_length < 50: 
             score = "Overused"
-        elif skilled_alignment > 2 and has_quantifiable_results and personal_action and action_length > 50:
+        elif skilled_signs and skilled_alignment > 2 and has_quantifiable_results and personal_action and action_length > 50:
             score = "Talented"
-        elif unskilled_alignment > 2:
+        elif unskilled_signs and unskilled_alignment > 2:
             score = "Unskilled"
-        story['score'] = score
-        print(f"\nSCORE: {score}")
-        print(f"\nScore Description: {self.scoring_criteria[score]['description']}")
-        self.provide_feedback(score)
-        save_choice = input("\nWould you like to save this story? (yes/no): ").lower()
-        if save_choice in ['yes', 'y']:
-            self.save_story(story)
+        
+        story['score'] = score 
+        score_description = self.scoring_criteria[score]['description']
 
-    def provide_feedback(self, score):
-        story = self.story
-        competency = story['competency']
-        situation_length = len(story['situation'].split())
-        task_length = len(story['task'].split())
-        action_length = len(story['action'].split())
-        result_length = len(story['result'].split())
-        has_quantifiable_results = any(char.isdigit() for char in story['result'])
-        personal_action = ('i ' in story['action'].lower() or 'my ' in story['action'].lower() or 'me ' in story['action'].lower())
-        # Color feedback header
-        print(Fore.GREEN + "\nFEEDBACK:" + Style.RESET_ALL)
-        if score == "Talented":
-            print(Fore.YELLOW + "Your story demonstrates excellent mastery of this competency. It's detailed, focused, and shows significant impact." + Style.RESET_ALL)
-        elif score == "Skilled":
-            print(Fore.YELLOW + "Your story effectively demonstrates this competency. It provides a clear example with appropriate detail and positive outcomes." + Style.RESET_ALL)
-        elif score == "Unskilled":
-            print(Fore.RED + "Your story needs improvement to effectively demonstrate this competency. It lacks some key elements that would make it more convincing." + Style.RESET_ALL)
-        elif score == "Overused":
-            print(Fore.MAGENTA + "Your story shows an overemphasis on certain aspects of the competency, potentially at the expense of balance and effectiveness." + Style.RESET_ALL)
-        print(Fore.BLUE + "\nSpecific suggestions for improvement:" + Style.RESET_ALL)
-        if situation_length < 20:
-            print(Fore.YELLOW + "- Add more context to your situation to set the stage more effectively." + Style.RESET_ALL)
-        if task_length < 20:
-            print(Fore.YELLOW + "- Clarify your specific responsibility or challenge in more detail." + Style.RESET_ALL)
-        if not personal_action:
-            print(Fore.YELLOW + "- Focus more on YOUR actions by using 'I' statements rather than 'we' or passive voice." + Style.RESET_ALL)
-        if action_length < 50:
-            print(Fore.YELLOW + "- Provide more specific details about the steps you took and your decision-making process." + Style.RESET_ALL)
-        if result_length < 20:
-            print(Fore.YELLOW + "- Expand on the outcomes and impact of your actions." + Style.RESET_ALL)
-        if not has_quantifiable_results:
-            print(Fore.YELLOW + "- Include specific numbers or metrics to quantify your results (%, $, time saved, etc.)." + Style.RESET_ALL)
-        if action_length > 200 and result_length < 50:
-            print(Fore.YELLOW + "- Balance your story by focusing more on results and less on listing every action step." + Style.RESET_ALL)
-        print(Fore.CYAN + f"\nCompetency-specific feedback for '{competency}':" + Style.RESET_ALL)
-        if score in ["Unskilled", "Overused"]:
-            print(Fore.YELLOW + "Consider incorporating these elements that demonstrate skill in this competency:" + Style.RESET_ALL)
-            for sign in self.general_competencies[competency]['skilled_signs'][:2]:
-                print(Fore.YELLOW + f"- {sign}" + Style.RESET_ALL)
-        else:
-            print(Fore.GREEN + "To further strengthen your story for this competency, consider:" + Style.RESET_ALL)
-            if competency == "Action Oriented":
-                print("- Emphasizing how quickly you took initiative without excessive planning")
-                print("- Highlighting your eagerness to tackle challenges head-on")
-            elif competency == "Being Resilient":
-                print("- Focusing more on how you maintained composure under pressure")
-                print("- Emphasizing what you learned from overcoming adversity")
-            elif competency == "Collaborates":
-                print("- Detailing how you balanced your interests with those of others")
-                print("- Explaining how you recognized others' contributions")
-            elif competency == "Communicates Effectively":
-                print("- Highlighting how you adapted your communication style to different audiences")
-                print("- Showing how you ensured your message was clearly understood")
-            elif competency == "Customer Focus":
-                print("- Emphasizing how you gained insight into customer needs")
-                print("- Detailing how you built a strong customer relationship")
-            elif competency == "Decision Quality":
-                print("- Highlighting the factors you considered in your decision-making process")
-                print("- Showing how you made decisions with incomplete information")
-            elif competency == "Drives Results":
-                print("- Emphasizing your persistence despite obstacles")
-                print("- Highlighting how you exceeded expectations or goals")
-            elif competency == "Strategic Mindset":
-                print("- Emphasizing how you anticipated future trends or implications")
-                print("- Showing how your approach aligned with broader objectives")
+        ai_feedback = self.provide_feedback(
+            score=score, 
+            situation=situation_text,
+            task=story.get('task', ''),
+            action=action_text,
+            result=result_text,
+            competency=competency,
+            question=story.get('question', '')
+        )
+        
+        return score, score_description, ai_feedback
+
+    def provide_feedback(self, score=None, situation=None, task=None, action=None, result=None, competency=None, question=None):
+        # Determine data source for AI prompt: passed parameters take precedence (for app.py)
+        # For console output (prints below), it will still primarily use self.story if set and score is passed.
+        
+        situation_for_ai = situation if situation is not None else (self.story.get('situation', '') if hasattr(self, 'story') else '')
+        task_for_ai = task if task is not None else (self.story.get('task', '') if hasattr(self, 'story') else '')
+        action_for_ai = action if action is not None else (self.story.get('action', '') if hasattr(self, 'story') else '')
+        result_for_ai = result if result is not None else (self.story.get('result', '') if hasattr(self, 'story') else '')
+        competency_for_ai = competency if competency is not None else (self.story.get('competency', 'N/A') if hasattr(self, 'story') else 'N/A')
+        question_for_ai = question if question is not None else (self.story.get('question', 'N/A') if hasattr(self, 'story') else 'N/A')
+
+        # Console-specific feedback (relies on self.story and score if called from score_story)
+        if score and hasattr(self, 'story'):
+            story_data_for_console = self.story # Use self.story for console logic
+            situation_length = len(story_data_for_console.get('situation', '').split())
+            task_length = len(story_data_for_console.get('task', '').split())
+            action_length = len(story_data_for_console.get('action', '').split())
+            result_length = len(story_data_for_console.get('result', '').split())
+            has_quantifiable_results = any(char.isdigit() for char in story_data_for_console.get('result', ''))
+            personal_action = ('i ' in story_data_for_console.get('action', '').lower() or 
+                               'my ' in story_data_for_console.get('action', '').lower() or 
+                               'me ' in story_data_for_console.get('action', '').lower())
+            
+            print(Fore.GREEN + "\\nFEEDBACK:" + Style.RESET_ALL)
+            if score == "Talented":
+                print(Fore.YELLOW + "Your story demonstrates excellent mastery of this competency. It's detailed, focused, and shows significant impact." + Style.RESET_ALL)
+            elif score == "Skilled":
+                print(Fore.YELLOW + "Your story effectively demonstrates this competency. It provides a clear example with appropriate detail and positive outcomes." + Style.RESET_ALL)
+            elif score == "Unskilled":
+                print(Fore.RED + "Your story needs improvement to effectively demonstrate this competency. It lacks some key elements that would make it more convincing." + Style.RESET_ALL)
+            elif score == "Overused":
+                print(Fore.MAGENTA + "Your story shows an overemphasis on certain aspects of the competency, potentially at the expense of balance and effectiveness." + Style.RESET_ALL)
+            
+            print(Fore.BLUE + "\\nSpecific suggestions for improvement:" + Style.RESET_ALL)
+            if situation_length < 20:
+                print(Fore.YELLOW + "- Add more context to your situation to set the stage more effectively." + Style.RESET_ALL)
+            if task_length < 20:
+                print(Fore.YELLOW + "- Clarify your specific responsibility or challenge in more detail." + Style.RESET_ALL)
+            if not personal_action:
+                print(Fore.YELLOW + "- Focus more on YOUR actions by using 'I' statements rather than 'we' or passive voice." + Style.RESET_ALL)
+            if action_length < 50:
+                print(Fore.YELLOW + "- Provide more specific details about the steps you took and your decision-making process." + Style.RESET_ALL)
+            if result_length < 20:
+                print(Fore.YELLOW + "- Expand on the outcomes and impact of your actions." + Style.RESET_ALL)
+            if not has_quantifiable_results:
+                print(Fore.YELLOW + "- Include specific numbers or metrics to quantify your results (%, $, time saved, etc.)." + Style.RESET_ALL)
+            if action_length > 200 and result_length < 50: # This condition was from score_story, might be redundant here
+                print(Fore.YELLOW + "- Balance your story by focusing more on results and less on listing every action step." + Style.RESET_ALL)
+
+            console_competency = story_data_for_console.get('competency', 'N/A') # Use competency from self.story for console
+            print(Fore.CYAN + f"\\nCompetency-specific feedback for '{console_competency}':" + Style.RESET_ALL)
+            if score in ["Unskilled", "Overused"]:
+                print(Fore.YELLOW + "Consider incorporating these elements that demonstrate skill in this competency:" + Style.RESET_ALL)
+                # Ensure console_competency is valid before accessing general_competencies
+                if console_competency and console_competency in self.general_competencies:
+                    skilled_signs_list = self.general_competencies[console_competency].get('skilled_signs', [])
+                    for sign in skilled_signs_list[:2]:
+                        print(Fore.YELLOW + f"- {sign}" + Style.RESET_ALL)
+                else:
+                    print(Fore.YELLOW + f"- (Could not load specific skilled signs for competency: {console_competency})" + Style.RESET_ALL)
+            else: # Skilled or Talented
+                print(Fore.GREEN + "To further strengthen your story for this competency, consider:" + Style.RESET_ALL)
+                # ... (competency specific console suggestions remain unchanged, using console_competency)
+                if console_competency == "Action Oriented":
+                    print("- Emphasizing how quickly you took initiative without excessive planning")
+                    print("- Highlighting your eagerness to tackle challenges head-on")
+                elif console_competency == "Being Resilient":
+                    print("- Focusing more on how you maintained composure under pressure")
+                    print("- Emphasizing what you learned from overcoming adversity")
+                # ... (rest of the competency specific console suggestions) ...
+                elif console_competency == "Collaborates":
+                    print("- Detailing how you balanced your interests with those of others")
+                    print("- Explaining how you recognized others' contributions")
+                elif console_competency == "Communicates Effectively":
+                    print("- Highlighting how you adapted your communication style to different audiences")
+                    print("- Showing how you ensured your message was clearly understood")
+                elif console_competency == "Customer Focus":
+                    print("- Emphasizing how you gained insight into customer needs")
+                    print("- Detailing how you built a strong customer relationship")
+                elif console_competency == "Decision Quality":
+                    print("- Highlighting the factors you considered in your decision-making process")
+                    print("- Showing how you made decisions with incomplete information")
+                elif console_competency == "Drives Results":
+                    print("- Emphasizing your persistence despite obstacles")
+                    print("- Highlighting how you exceeded expectations or goals")
+                elif console_competency == "Strategic Mindset":
+                    print("- Emphasizing how you anticipated future trends or implications")
+                    print("- Showing how your approach aligned with broader objectives")
+
+
+        # AI-Powered Feedback Section - uses the _for_ai variables
+        ai_feedback_result = None
+        print(Fore.MAGENTA + "\\n✨ AI-Powered Suggestions: ✨" + Style.RESET_ALL) # This print is for console mode
+        try:
+            if not self.api_client:
+                error_msg = "OpenAI API client is not initialized. Skipping AI feedback."
+                print(Fore.RED + error_msg + Style.RESET_ALL) # Console
+                return f"[AI Error: {error_msg}]" # Return for app.py
+
+            prompt_text = (
+                f"You are an expert interview coach. A user has provided the following STAR story for the competency '{competency_for_ai}'. "
+                f"The interview question asked was: '{question_for_ai}'\\n\\n"
+                f"Situation: {situation_for_ai}\\n"
+                f"Task: {task_for_ai}\\n"
+                f"Action: {action_for_ai}\\n"
+                f"Result: {result_for_ai}\\n\\n"
+                "Please provide 2-3 specific, actionable suggestions to improve this story. Focus on clarity, impact, and how well it demonstrates the competency. Keep the feedback concise and constructive."
+            )
+            
+            response = self.api_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are an expert interview coach providing feedback on STAR stories."},
+                    {"role": "user", "content": prompt_text}
+                ],
+                max_tokens=200, # Increased slightly for potentially more detailed feedback
+                temperature=0.7
+            )
+            
+            ai_feedback_result = response.choices[0].message.content.strip()
+            print(Fore.CYAN + ai_feedback_result + Style.RESET_ALL) # Console print
+
+        except Exception as e:
+            error_msg = f"Could not retrieve AI-powered feedback at this time: {e}"
+            print(Fore.RED + error_msg + Style.RESET_ALL) # Console
+            print(Fore.YELLOW + "Please ensure your OpenAI API key is correctly configured as an environment variable (OPENAI_API_KEY)." + Style.RESET_ALL) # Console
+            ai_feedback_result = f"[AI Error: {error_msg}]" # Return for app.py
+        
+        return ai_feedback_result
 
     def craft_star_story(self):
         """Guide the user through crafting a STAR method story with navigation options and detailed tips, with color formatting."""
@@ -1108,7 +795,3 @@ class UnifiedSTARCoach:
         print(story.get('action', ''))
         print(Fore.MAGENTA + "\nR - RESULT:" + Style.RESET_ALL)
         print(story.get('result', ''))
-
-if __name__ == "__main__":
-    coach = UnifiedSTARCoach()
-    coach.run()
