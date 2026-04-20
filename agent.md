@@ -1,4 +1,5 @@
 # agent.md
+_Previously named `AGENTS.md`; update any remaining references to use `agent.md`._
 
 This repository is a Python-based STAR interview coaching project centered on `STARMETHOD/`.
 

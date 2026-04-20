@@ -23,7 +23,10 @@ if 'gemini_api_key' not in st.session_state:
         st.session_state['gemini_api_key'] = os.environ.get('GEMINI_API_KEY', "")
 
 if 'openai_api_key' not in st.session_state:
-    st.session_state['openai_api_key'] = st.secrets.get("OPENAI_API_KEY", os.environ.get('OPENAI_API_KEY', ""))
+    try:
+        st.session_state['openai_api_key'] = st.secrets["OPENAI_API_KEY"]
+    except Exception:
+        st.session_state['openai_api_key'] = os.environ.get('OPENAI_API_KEY', "")
 
 # Display warnings if keys are missing
 if not st.session_state['gemini_api_key']:

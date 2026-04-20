@@ -17,6 +17,9 @@ AI-powered coaching tools to help users build stronger behavioral interview answ
 ## Architecture
 Data flow for the main coaching path:
 `app.py` -> `UnifiedSTARCoach` -> `competency_questions.py`
+- `app.py` captures user inputs and orchestrates the Streamlit workflow.
+- `UnifiedSTARCoach` processes the selected competency/question into guided STAR coaching steps.
+- `competency_questions.py` provides the competency-aligned prompt source used by the coaching flow.
 
 ## Quick Start
 1. Use Python 3.9+.
