@@ -14,16 +14,19 @@ AI-powered coaching tools to help users build stronger behavioral interview answ
 - `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD/unified_star_coach.py` – Unified coaching flow logic
 - `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD/models.py` – Shared models/types
 
+## Architecture
+Data flow for the main coaching path:
+`app.py` -> `UnifiedSTARCoach` -> `competency_questions.py`
+
 ## Quick Start
 1. Use Python 3.9+.
 2. Create and activate a virtual environment.
-3. Install required packages used by scripts (for example `streamlit`, `requests`, and any project-specific dependencies).
-4. Run from the `STARMETHOD` directory.
+3. Install required packages, including `openai`, `streamlit`, `colorama`, and `requests`.
+4. Run from the repository root.
 
 Example launch:
 ```bash
-cd /home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD
-python app.py
+streamlit run STARMETHOD/app.py
 ```
 
 ## Security Note

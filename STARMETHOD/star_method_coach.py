@@ -677,7 +677,7 @@ class STARMethodCoach:
         self.story.timestamp = datetime.now().isoformat()
 
         # Directory setup
-        save_dir = Path("/Users/fernandoceja/Documents/Documents/VSCODEINSIDERS/Test/STARMETHOD/Stories")
+        save_dir = Path("./Stories/")
         save_dir.mkdir(exist_ok=True)
 
         # File name based on question + competency

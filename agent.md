@@ -1,4 +1,4 @@
-# AGENTS.md
+# agent.md
 
 This repository is a Python-based STAR interview coaching project centered on `STARMETHOD/`.
 
@@ -20,7 +20,7 @@ Provide consistent guidance for human and AI contributors working in this repo.
 For contributor guidance in this repo:
 1. Explicit user request
 2. System/developer instructions from the active agent runtime
-3. This `AGENTS.md`
+3. This `agent.md`
 4. Supplemental docs (`CLAUDE.md`, `memory.md`, `README.md`)
 
 ## Suggested Validation

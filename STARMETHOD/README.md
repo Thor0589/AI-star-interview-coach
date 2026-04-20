@@ -54,6 +54,9 @@ python star_method_coach.py
 - Drives Results
 - Strategic Mindset
 
+## Data Handling
+Completed story outputs are saved as JSON files in the `Stories/` directory.
+
 ## Scoring Criteria
 
 ### Talented
@@ -112,7 +115,7 @@ Excessive or inappropriate application of the competency.
 
 ## Related Files
 - `star_method_coach.py`: Main program file
-- `star_stories_with_scores.txt`: Saved stories with scores (created when stories are saved)
+- `Stories/`: Directory containing saved story JSON outputs
 - `star_story_builder.py`: Original story builder script
 - `role_based_star_builder.py`: Alternative story builder focusing on role-specific competencies
 

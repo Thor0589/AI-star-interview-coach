@@ -15,20 +15,22 @@ from competency_questions import COMPETENCY_QUESTIONS
 # Set page config FIRST before any other Streamlit calls
 st.set_page_config(page_title="STAR Coach Demo", page_icon="✨", layout="wide")
 
-# Store Gemini API key securely - Load from environment variable
-# Remove the hardcoded line below if it exists:
-# st.session_state['gemini_api_key'] = "YOUR_OLD_HARDCODED_KEY"
+# Load API keys from Streamlit secrets first, then environment variables as fallback
+if 'gemini_api_key' not in st.session_state:
+    try:
+        st.session_state['gemini_api_key'] = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        st.session_state['gemini_api_key'] = os.environ.get('GEMINI_API_KEY', "")
 
-# Use the provided Gemini API key
-st.session_state['gemini_api_key'] = "AIzaSyC-4tPdw01L1NuAOQCOusaIWitIJ8PthsA"
+if 'openai_api_key' not in st.session_state:
+    st.session_state['openai_api_key'] = st.secrets.get("OPENAI_API_KEY", os.environ.get('OPENAI_API_KEY', ""))
 
-# Fallback to environment variable if the hardcoded key is somehow cleared or not set initially (though the line above should set it)
-if not st.session_state.get('gemini_api_key'):
-    st.session_state['gemini_api_key'] = os.environ.get('GEMINI_API_KEY', "")
-
-# Display a warning if the key is still missing
+# Display warnings if keys are missing
 if not st.session_state['gemini_api_key']:
-    st.warning("⚠️ Gemini API Key not found. Please set the GEMINI_API_KEY environment variable. AI features will be disabled.", icon="⚠️")
+    st.warning("⚠️ Gemini API Key not found. Please set GEMINI_API_KEY in Streamlit secrets or environment variables. AI features will be disabled.", icon="⚠️")
+
+if not st.session_state['openai_api_key']:
+    st.warning("⚠️ OPENAI_API_KEY not found. Please set OPENAI_API_KEY in Streamlit secrets or environment variables for OpenAI-powered features.", icon="⚠️")
 
 # Slugify for safe filenames
 def slugify(value):
