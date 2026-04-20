@@ -8,7 +8,7 @@ Provide consistent guidance for human and AI contributors working in this repo.
 
 ## Scope
 - Root docs and project metadata live at repository root.
-- Core application logic lives in `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD`.
+- Core application logic lives in `STARMETHOD/`.
 
 ## Working Rules
 1. Prefer minimal, focused changes tied directly to the requested task.
