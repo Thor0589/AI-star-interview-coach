@@ -1,0 +1,5 @@
+streamlit
+requests
+colorama
+openai
+PyPDF2
