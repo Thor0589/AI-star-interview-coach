@@ -23,14 +23,39 @@ Data flow for the main coaching path:
 
 ## Quick Start
 1. Use Python 3.9+.
-2. Create and activate a virtual environment.
-3. Install required packages, including `openai`, `streamlit`, `colorama`, and `requests`.
-4. Run from the repository root.
-
-Example launch:
-```bash
-streamlit run STARMETHOD/app.py
-```
+2. Clone and enter the repository:
+   ```bash
+   git clone https://github.com/Thor0589/AI-star-interview-coach.git
+   cd AI-star-interview-coach
+   ```
+3. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+   On Windows (PowerShell):
+   ```powershell
+   .venv\Scripts\Activate.ps1
+   ```
+4. Install dependencies:
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+5. Configure API keys (environment variables):
+   ```bash
+   export GEMINI_API_KEY="your_gemini_key"
+   export OPENAI_API_KEY="your_openai_key"
+   ```
+   On Windows (PowerShell):
+   ```powershell
+   $env:GEMINI_API_KEY="your_gemini_key"
+   $env:OPENAI_API_KEY="your_openai_key"
+   ```
+6. Run from the repository root:
+   ```bash
+   streamlit run STARMETHOD/app.py
+   ```
 
 ## Security Note
 Do **not** hardcode API keys in source files. Use environment variables (for example `GEMINI_API_KEY`) and secure secret management.

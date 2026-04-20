@@ -55,8 +55,8 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
 """
     api_key = st.session_state['gemini_api_key']
     # Updated URL to v1beta and :generateContent
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-    headers = {"Content-Type": "application/json"}
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     # Updated payload structure for :generateContent
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
@@ -210,8 +210,8 @@ def get_ai_chat_response(user_prompt):
     # Note: The v1beta API uses a different structure for system instructions if needed.
     # For simplicity here, we'll prepend it or rely on the model's general knowledge.
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-    headers = {"Content-Type": "application/json"}
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     # Send the conversation history
     data = {"contents": messages}
     # Add generationConfig if needed (e.g., temperature, max_output_tokens)
@@ -412,8 +412,8 @@ with tabs[0]:  # Build tab
             proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Situation section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{s}"
             api_key = st.session_state['gemini_api_key']
             # Updated URL
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-            headers = {"Content-Type": "application/json"}
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
             # Updated payload
             data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
             try:
@@ -441,8 +441,8 @@ with tabs[0]:  # Build tab
             tone_prompt = f"Analyze the emotional and professional tone of this STAR Situation section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{s}"
             api_key = st.session_state['gemini_api_key']
             # Updated URL
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-            headers = {"Content-Type": "application/json"}
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
             # Updated payload
             data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
             try:
@@ -484,8 +484,8 @@ with tabs[0]:  # Build tab
                         sim_prompt = f"Compare the following two STAR Situation sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{s}\\n\\nSection 2:\\n{story.get('situation','')}\\n\\nScore only:"
                         api_key = st.session_state['gemini_api_key']
                         # Updated URL
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                        headers = {"Content-Type": "application/json"}
+                        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                        headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                         # Updated payload
                         data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                         try:
@@ -530,8 +530,8 @@ with tabs[0]:  # Build tab
                 proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Task section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{t}"
                 api_key = st.session_state['gemini_api_key']
                 # Updated URL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
+                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
@@ -559,8 +559,8 @@ with tabs[0]:  # Build tab
                 tone_prompt = f"Analyze the emotional and professional tone of this STAR Task section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{t}"
                 api_key = st.session_state['gemini_api_key']
                 # Updated URL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
+                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
@@ -602,8 +602,8 @@ with tabs[0]:  # Build tab
                             sim_prompt = f"Compare the following two STAR Task sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{t}\\n\\nSection 2:\\n{story.get('task','')}\\n\\nScore only:"
                             api_key = st.session_state['gemini_api_key']
                             # Updated URL
-                            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                            headers = {"Content-Type": "application/json"}
+                            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
@@ -648,8 +648,8 @@ with tabs[0]:  # Build tab
                 proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Action section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{a}"
                 api_key = st.session_state['gemini_api_key']
                 # Updated URL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
+                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
@@ -677,8 +677,8 @@ with tabs[0]:  # Build tab
                 tone_prompt = f"Analyze the emotional and professional tone of this STAR Action section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{a}"
                 api_key = st.session_state['gemini_api_key']
                 # Updated URL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
+                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
@@ -720,8 +720,8 @@ with tabs[0]:  # Build tab
                             sim_prompt = f"Compare the following two STAR Action sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{a}\\n\\nSection 2:\\n{story.get('action','')}\\n\\nScore only:"
                             api_key = st.session_state['gemini_api_key']
                             # Updated URL
-                            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                            headers = {"Content-Type": "application/json"}
+                            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
@@ -766,8 +766,8 @@ with tabs[0]:  # Build tab
                 proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Result section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{r}"
                 api_key = st.session_state['gemini_api_key']
                 # Updated URL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
+                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
@@ -795,8 +795,8 @@ with tabs[0]:  # Build tab
                 tone_prompt = f"Analyze the emotional and professional tone of this STAR Result section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{r}"
                 api_key = st.session_state['gemini_api_key']
                 # Updated URL
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
+                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
@@ -838,8 +838,8 @@ with tabs[0]:  # Build tab
                             sim_prompt = f"Compare the following two STAR Result sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{r}\\n\\nSection 2:\\n{story.get('result','')}\\n\\nScore only:"
                             api_key = st.session_state['gemini_api_key']
                             # Updated URL
-                            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-                            headers = {"Content-Type": "application/json"}
+                            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+                            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
@@ -967,8 +967,8 @@ with tabs[1]:  # Review & Score tab
 **Result:**
 {current_r}"""
             api_key = st.session_state['gemini_api_key']
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={api_key}"
-            headers = {"Content-Type": "application/json"}
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
+            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
             data = {"contents": [{"parts": [{"text": review_prompt}]}]}
             review_feedback = "" # Initialize review_feedback
             try:
