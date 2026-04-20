@@ -1,4 +1,5 @@
-# AGENTS.md
+# agent.md
+_Previously named `AGENTS.md`; update any remaining references to use `agent.md`._
 
 This repository is a Python-based STAR interview coaching project centered on `STARMETHOD/`.
 
@@ -7,7 +8,7 @@ Provide consistent guidance for human and AI contributors working in this repo.
 
 ## Scope
 - Root docs and project metadata live at repository root.
-- Core application logic lives in `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD`.
+- Core application logic lives in `STARMETHOD/`.
 
 ## Working Rules
 1. Prefer minimal, focused changes tied directly to the requested task.
@@ -20,7 +21,7 @@ Provide consistent guidance for human and AI contributors working in this repo.
 For contributor guidance in this repo:
 1. Explicit user request
 2. System/developer instructions from the active agent runtime
-3. This `AGENTS.md`
+3. This `agent.md`
 4. Supplemental docs (`CLAUDE.md`, `memory.md`, `README.md`)
 
 ## Suggested Validation
