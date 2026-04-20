@@ -1,87 +1,36 @@
-# AI-star-interview-coach
-An AI-powered interactive tool that teaches users to improve interview answers using the STAR method.
+# AI STAR Interview Coach
 
-# 🌟 AI STAR Interview Coach
+AI-powered coaching tools to help users build stronger behavioral interview answers using the STAR framework (Situation, Task, Action, Result).
 
-Welcome to the **AI STAR Interview Coach** — a smart, structured tool designed to help you craft compelling, confident interview responses using the STAR method (Situation, Task, Action, Result).
+## Features
+- Guided STAR story creation workflows
+- Competency-based and question-based prompting
+- Story evaluation and feedback helpers
+- Multiple scripts/prototypes under `STARMETHOD/`
 
-Whether you're prepping for a tech interview, leadership role, or internal promotion, this app empowers you to organize your thoughts and highlight your value — all with the help of AI.
+## Repository Structure
+- `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD/app.py` – Streamlit-style interactive app entrypoint (current UI implementation)
+- `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD/star_method_coach.py` – Core STAR coaching logic
+- `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD/unified_star_coach.py` – Unified coaching flow logic
+- `/home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD/models.py` – Shared models/types
 
----
+## Quick Start
+1. Use Python 3.9+.
+2. Create and activate a virtual environment.
+3. Install required packages used by scripts (for example `streamlit`, `requests`, and any project-specific dependencies).
+4. Run from the `STARMETHOD` directory.
 
-## 🚀 Features
-
-- ✅ **Role-based and competency-based prompts**
-- 🧠 **AI-assisted STAR story creation**
-- 📂 **Import/export personal success stories in JSON format**
-- 🛠️ Built with Python for easy customization
-- 🎯 Designed for behavioral interview training
-
----
-
-## 📦 Folder Structure
-
-```
-📁 STARMETHOD/
-├── app.py
-├── role_based_star_builder.py
-├── star_story_builder.py
-├── *_effectively.json
-├── *_Resilient.json
-├── unified_star_coach.py
-├── *.rtf / *.pdf (reference content)
-📁 .vscode/
-├── settings.json (Python path config)
-```
-
----
-
-## 🧰 Getting Started
-
-1. **Clone the repo:**
-
+Example launch:
 ```bash
-git clone https://github.com/your-username/ai-star-interview-coach.git
-cd ai-star-interview-coach
-```
-
-2. **Install Python 3.9+**  
-   *(or adjust paths in `.vscode/settings.json` for your version)*
-
-3. **Install dependencies (if applicable):**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Run the app:**
-```bash
+cd /home/runner/work/AI-star-interview-coach/AI-star-interview-coach/STARMETHOD
 python app.py
 ```
 
----
+## Security Note
+Do **not** hardcode API keys in source files. Use environment variables (for example `GEMINI_API_KEY`) and secure secret management.
 
-## 🧪 Development Notes
+## Project Status
+The project is active and in cleanup/standardization mode. Expect iterative improvements to structure, docs, and deployment readiness.
 
-- VSCode will recognize external packages thanks to the custom `.vscode/settings.json` paths
-- You can extend functionality with OpenAI or Gemini APIs
-- Rename `apple_star_builder.py` to remove legacy references (optional)
-
----
-
-## 🤝 Contributions Welcome
-
-Got a cool idea? Spotted a bug?  
-Open an issue or submit a pull request — let’s build this together.
-
----
-
-## 📄 License
-
-MIT License — free to use, modify, and distribute with credit.
-
----
-
-## 💬 Connect
-
-Built with ❤️ by **Fernando Ceja**  
-_“Helping people tell their story, one STAR at a time.”_
+## License
+MIT (see `LICENSE`).
