@@ -13,7 +13,7 @@ import os
 import json
 from datetime import datetime
 from colorama import Fore, Style, init
-from openai import OpenAI, OpenAIError
+from openai import OpenAI
 
 # Initialize colorama
 init(autoreset=True)
@@ -39,11 +39,8 @@ class UnifiedSTARCoach:
         if self.openai_api_key:
             try:
                 self.api_client = OpenAI(api_key=self.openai_api_key)
-            except OpenAIError:
-                print(Fore.YELLOW + "OpenAI client initialization failed, using mock fallback mode." + Style.RESET_ALL)
-                self.api_client = None
             except Exception:
-                print(Fore.YELLOW + "OpenAI client initialization failed unexpectedly, using mock fallback mode." + Style.RESET_ALL)
+                print(Fore.YELLOW + "OpenAI client initialization failed, using mock fallback mode." + Style.RESET_ALL)
                 self.api_client = None
         
         # Load general competencies by calling the method defined in the class
