@@ -7,7 +7,7 @@ from datetime import datetime
 import re
 from pathlib import Path
 from star_method_coach import STARMethodCoach
-from unified_star_coach import UnifiedSTARCoach # Add this import
+from unified_star_coach import UnifiedSTARCoach, MOCK_AI_FALLBACK_RESPONSE # Add this import
 from models import Story
 import requests
 from competency_questions import COMPETENCY_QUESTIONS
@@ -15,10 +15,7 @@ from competency_questions import COMPETENCY_QUESTIONS
 # Set page config FIRST before any other Streamlit calls
 st.set_page_config(page_title="STAR Coach Demo", page_icon="✨", layout="wide")
 
-MOCK_AI_RESPONSE = (
-    "Mock response (BYOK fallback): Great start. Add more specific context, clarify your exact actions, "
-    "and quantify your results to make your STAR answer stronger."
-)
+MOCK_AI_RESPONSE = MOCK_AI_FALLBACK_RESPONSE
 
 # Load API keys from Streamlit secrets first, then environment variables as fallback
 if 'gemini_api_key' not in st.session_state:
@@ -63,6 +60,7 @@ class MockGeminiResponse:
 def safe_gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
     api_key = st.session_state.get('gemini_api_key')
     if not api_key:
+        st.session_state['gemini_mock_fallback_used'] = True
         return MockGeminiResponse()
     return requests.request("POST", url, headers=headers, json=json, timeout=timeout, **kwargs)
 
@@ -114,6 +112,8 @@ if 'q_choice' not in st.session_state:
     st.session_state['q_choice'] = ''
 if 'q_text' not in st.session_state:
     st.session_state['q_text'] = ''
+if 'gemini_mock_fallback_used' not in st.session_state:
+    st.session_state['gemini_mock_fallback_used'] = False
 
 # Fix: Force dark mode for the whole app for now (override background and text colors globally)
 st.markdown('''
@@ -194,6 +194,8 @@ st.session_state['openai_api_key'] = st.sidebar.text_input(
 )
 if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_key']:
     st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
+if st.session_state.get('gemini_mock_fallback_used') and not st.session_state['gemini_api_key']:
+    st.sidebar.caption("Gemini calls are currently using mock responses.")
 
 if 'star_coach' not in st.session_state:
     st.session_state['star_coach'] = STARMethodCoach()

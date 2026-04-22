@@ -18,6 +18,11 @@ from openai import OpenAI, OpenAIError
 # Initialize colorama
 init(autoreset=True)
 
+MOCK_AI_FALLBACK_RESPONSE = (
+    "Mock response (BYOK fallback): Great start. Add more specific context, clarify your exact actions, "
+    "and quantify your results to make your STAR answer stronger."
+)
+
 
 class UnifiedSTARCoach:
     """
@@ -26,11 +31,6 @@ class UnifiedSTARCoach:
     2. Simple STAR story building for quick practice
     """
     
-    MOCK_AI_FEEDBACK = (
-        "Mock response (BYOK fallback): Great start. Add more specific context, clarify your exact actions, "
-        "and quantify your results to make your STAR answer stronger."
-    )
-
     def __init__(self, competency_file='competencies.json', openai_api_key=None): # Retaining competency_file for potential future use
         """Initialize the Unified STAR Coach with all competency frameworks and scoring criteria."""
         init(autoreset=True)  # Initialize colorama
@@ -41,6 +41,9 @@ class UnifiedSTARCoach:
                 self.api_client = OpenAI(api_key=self.openai_api_key)
             except OpenAIError:
                 print(Fore.YELLOW + "OpenAI client initialization failed, using mock fallback mode." + Style.RESET_ALL)
+                self.api_client = None
+            except Exception:
+                print(Fore.YELLOW + "OpenAI client initialization failed unexpectedly, using mock fallback mode." + Style.RESET_ALL)
                 self.api_client = None
         
         # Load general competencies by calling the method defined in the class
@@ -530,7 +533,7 @@ class UnifiedSTARCoach:
         try:
             if not self.api_client:
                 print(Fore.YELLOW + "No OpenAI key available. Using mock feedback fallback." + Style.RESET_ALL)
-                return self.MOCK_AI_FEEDBACK
+                return MOCK_AI_FALLBACK_RESPONSE
 
             prompt_text = (
                 f"You are an expert interview coach. A user has provided the following STAR story for the competency '{competency_for_ai}'. "
@@ -559,7 +562,7 @@ class UnifiedSTARCoach:
             error_msg = f"Could not retrieve AI-powered feedback at this time: {e}"
             print(Fore.RED + error_msg + Style.RESET_ALL) # Console
             print(Fore.YELLOW + "Falling back to mock feedback so you can continue testing the UI flow." + Style.RESET_ALL) # Console
-            ai_feedback_result = self.MOCK_AI_FEEDBACK
+            ai_feedback_result = MOCK_AI_FALLBACK_RESPONSE
         
         return ai_feedback_result
 
