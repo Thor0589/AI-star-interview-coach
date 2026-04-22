@@ -60,18 +60,11 @@ class MockGeminiHTTPResponse:
         return mock_gemini_response()
 
 
-_real_requests_post = requests.post
-
-
-def safe_requests_post(url, headers=None, json=None, timeout=30, **kwargs):
+def gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
     api_key = st.session_state.get('gemini_api_key')
-    is_gemini_endpoint = "generativelanguage.googleapis.com" in str(url)
-    if is_gemini_endpoint and not api_key:
+    if not api_key:
         return MockGeminiHTTPResponse()
-    return _real_requests_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
-
-
-requests.post = safe_requests_post
+    return requests.request("POST", url, headers=headers, json=json, timeout=timeout, **kwargs)
 
 # Slugify for safe filenames
 def slugify(value):
@@ -98,7 +91,7 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
     # Updated payload structure for :generateContent
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response = gemini_post(url, headers=headers, json=data, timeout=30)
         if not response.ok:
             # Try to parse error for more details
             try:
@@ -113,7 +106,6 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
         return f"[AI Error: {e}]"
 
 coach = STARMethodCoach()
-unified_coach = UnifiedSTARCoach(openai_api_key=st.session_state.get('openai_api_key')) # Add this instantiation
 
 # --- Initialize Session State ---
 if 'show_chat' not in st.session_state:
@@ -205,6 +197,8 @@ st.session_state['openai_api_key'] = st.sidebar.text_input(
 if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_key']:
     st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
 
+unified_coach = UnifiedSTARCoach(openai_api_key=st.session_state.get('openai_api_key'))
+
 mode = st.sidebar.radio("Choose STAR Mode", ["General STAR"], index=0)
 competencies = coach.competencies
 comp_list = list(competencies.keys())
@@ -272,7 +266,7 @@ def get_ai_chat_response(user_prompt):
     # data["generationConfig"] = { "temperature": 0.7, "maxOutputTokens": 500 }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=45)
+        response = gemini_post(url, headers=headers, json=data, timeout=45)
         if not response.ok:
             try:
                 error_details = response.json()
@@ -471,7 +465,7 @@ with tabs[0]:  # Build tab
             # Updated payload
             data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                response = gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     # Updated extraction
@@ -500,7 +494,7 @@ with tabs[0]:  # Build tab
             # Updated payload
             data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                response = gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     # Updated extraction
@@ -543,7 +537,7 @@ with tabs[0]:  # Build tab
                         # Updated payload
                         data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                         try:
-                            response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                            response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
                             if response.ok:
                                 result = response.json()
                                 # Updated extraction
@@ -589,7 +583,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -618,7 +612,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -661,7 +655,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                                response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -707,7 +701,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -736,7 +730,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -779,7 +773,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                                response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -825,7 +819,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -854,7 +848,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -897,7 +891,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                                response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -1026,7 +1020,7 @@ with tabs[1]:  # Review & Score tab
             data = {"contents": [{"parts": [{"text": review_prompt}]}]}
             review_feedback = "" # Initialize review_feedback
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                response = gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     review_feedback = result['candidates'][0]['content']['parts'][0]['text'].strip()
