@@ -42,7 +42,7 @@ Data flow for the main coaching path:
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-5. Configure API keys (environment variables):
+5. Configure API keys (environment variables) or provide them in the app sidebar at runtime (BYOK):
    ```bash
    export GEMINI_API_KEY="your_gemini_key"
    export OPENAI_API_KEY="your_openai_key"
@@ -53,9 +53,10 @@ Data flow for the main coaching path:
    $env:OPENAI_API_KEY="your_openai_key"
    ```
 6. Run from the repository root:
-   ```bash
-   streamlit run STARMETHOD/app.py
-   ```
+    ```bash
+    streamlit run STARMETHOD/app.py
+    ```
+   If no keys are supplied, the app runs in mock-response mode so you can still test the full UI flow.
 
 ## Security Note
 Do **not** hardcode API keys in source files. Use environment variables (for example `GEMINI_API_KEY`) and secure secret management.

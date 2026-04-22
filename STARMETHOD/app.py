@@ -7,7 +7,7 @@ from datetime import datetime
 import re
 from pathlib import Path
 from star_method_coach import STARMethodCoach
-from unified_star_coach import UnifiedSTARCoach # Add this import
+from unified_star_coach import UnifiedSTARCoach, MOCK_AI_FALLBACK_RESPONSE # Add this import
 from models import Story
 import requests
 from competency_questions import COMPETENCY_QUESTIONS
@@ -28,12 +28,39 @@ if 'openai_api_key' not in st.session_state:
     except Exception:
         st.session_state['openai_api_key'] = os.environ.get('OPENAI_API_KEY', "")
 
-# Display warnings if keys are missing
-if not st.session_state['gemini_api_key']:
-    st.warning("⚠️ Gemini API Key not found. Please set GEMINI_API_KEY in Streamlit secrets or environment variables. AI features will be disabled.", icon="⚠️")
+def mock_gemini_response():
+    return {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {
+                            "text": MOCK_AI_FALLBACK_RESPONSE
+                        }
+                    ]
+                }
+            }
+        ]
+    }
 
-if not st.session_state['openai_api_key']:
-    st.warning("⚠️ OPENAI_API_KEY not found. Please set OPENAI_API_KEY in Streamlit secrets or environment variables for OpenAI-powered features.", icon="⚠️")
+
+class MockGeminiResponse:
+    def __init__(self):
+        self.ok = True
+        self.status_code = 200
+        self.reason = "OK"
+        self.text = MOCK_AI_FALLBACK_RESPONSE
+
+    def json(self):
+        return mock_gemini_response()
+
+
+def safe_gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
+    api_key = st.session_state.get('gemini_api_key')
+    if not api_key:
+        st.session_state['gemini_mock_fallback_used'] = True
+        return MockGeminiResponse()
+    return requests.post(url, headers=headers, json=json, timeout=timeout, **kwargs)
 
 # Slugify for safe filenames
 def slugify(value):
@@ -60,7 +87,7 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
     # Updated payload structure for :generateContent
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
         if not response.ok:
             # Try to parse error for more details
             try:
@@ -74,9 +101,6 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
     except Exception as e:
         return f"[AI Error: {e}]"
 
-coach = STARMethodCoach()
-unified_coach = UnifiedSTARCoach() # Add this instantiation
-
 # --- Initialize Session State ---
 if 'show_chat' not in st.session_state:
     st.session_state.show_chat = False
@@ -86,6 +110,8 @@ if 'q_choice' not in st.session_state:
     st.session_state['q_choice'] = ''
 if 'q_text' not in st.session_state:
     st.session_state['q_text'] = ''
+if 'gemini_mock_fallback_used' not in st.session_state:
+    st.session_state['gemini_mock_fallback_used'] = False
 
 # Fix: Force dark mode for the whole app for now (override background and text colors globally)
 st.markdown('''
@@ -151,6 +177,46 @@ h1, h2, h3, h4, h5, h6 {
 
 # --- Sidebar: All selection controls ---
 st.sidebar.title("STAR Story Builder")
+st.sidebar.subheader("Bring Your Own Key (BYOK)")
+st.session_state['gemini_api_key'] = st.sidebar.text_input(
+    "Gemini API Key",
+    value=st.session_state.get('gemini_api_key', ''),
+    type="password",
+    key="sidebar_gemini_api_key",
+)
+st.session_state['openai_api_key'] = st.sidebar.text_input(
+    "OpenAI API Key",
+    value=st.session_state.get('openai_api_key', ''),
+    type="password",
+    key="sidebar_openai_api_key",
+)
+if st.session_state['gemini_api_key']:
+    st.session_state['gemini_mock_fallback_used'] = False
+if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_key']:
+    st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
+if st.session_state.get('gemini_mock_fallback_used') and not st.session_state['gemini_api_key']:
+    st.sidebar.caption("Gemini calls are currently using mock responses.")
+if not st.session_state['openai_api_key']:
+    st.sidebar.caption("OpenAI feedback is currently using mock responses.")
+
+current_gemini_key = st.session_state.get('gemini_api_key')
+if (
+    'star_coach' not in st.session_state
+    or st.session_state.get('star_coach_api_key') != current_gemini_key
+):
+    st.session_state['star_coach'] = STARMethodCoach()
+    st.session_state['star_coach_api_key'] = current_gemini_key
+coach = st.session_state['star_coach']
+
+current_openai_key = st.session_state.get('openai_api_key')
+if (
+    'unified_coach' not in st.session_state
+    or st.session_state.get('unified_coach_api_key') != current_openai_key
+):
+    st.session_state['unified_coach'] = UnifiedSTARCoach(openai_api_key=current_openai_key)
+    st.session_state['unified_coach_api_key'] = current_openai_key
+unified_coach = st.session_state['unified_coach']
+
 mode = st.sidebar.radio("Choose STAR Mode", ["General STAR"], index=0)
 competencies = coach.competencies
 comp_list = list(competencies.keys())
@@ -194,7 +260,7 @@ else:
 def get_ai_chat_response(user_prompt):
     api_key = st.session_state.get('gemini_api_key')
     if not api_key:
-        return "[Error: Gemini API Key not configured]"
+        return MOCK_AI_FALLBACK_RESPONSE
 
     # Construct conversation history for the API
     messages = []
@@ -218,7 +284,7 @@ def get_ai_chat_response(user_prompt):
     # data["generationConfig"] = { "temperature": 0.7, "maxOutputTokens": 500 }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=45)
+        response = safe_gemini_post(url, headers=headers, json=data, timeout=45)
         if not response.ok:
             try:
                 error_details = response.json()
@@ -417,7 +483,7 @@ with tabs[0]:  # Build tab
             # Updated payload
             data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     # Updated extraction
@@ -446,7 +512,7 @@ with tabs[0]:  # Build tab
             # Updated payload
             data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     # Updated extraction
@@ -489,7 +555,7 @@ with tabs[0]:  # Build tab
                         # Updated payload
                         data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                         try:
-                            response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                            response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                             if response.ok:
                                 result = response.json()
                                 # Updated extraction
@@ -535,7 +601,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -564,7 +630,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -607,7 +673,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                                response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -653,7 +719,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -682,7 +748,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -725,7 +791,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                                response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -771,7 +837,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -800,7 +866,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = requests.post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -843,7 +909,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = requests.post(url, headers=headers, json=data_gem, timeout=30)
+                                response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -972,7 +1038,7 @@ with tabs[1]:  # Review & Score tab
             data = {"contents": [{"parts": [{"text": review_prompt}]}]}
             review_feedback = "" # Initialize review_feedback
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     review_feedback = result['candidates'][0]['content']['parts'][0]['text'].strip()
