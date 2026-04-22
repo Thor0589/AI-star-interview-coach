@@ -26,10 +26,21 @@ class UnifiedSTARCoach:
     2. Simple STAR story building for quick practice
     """
     
-    def __init__(self, competency_file='competencies.json'): # Retaining competency_file for potential future use
+    MOCK_AI_FEEDBACK = (
+        "Mock feedback (BYOK fallback): Use clearer context in Situation/Task, "
+        "highlight your direct actions with measurable outcomes, and close with the business impact."
+    )
+
+    def __init__(self, competency_file='competencies.json', openai_api_key=None): # Retaining competency_file for potential future use
         """Initialize the Unified STAR Coach with all competency frameworks and scoring criteria."""
         init(autoreset=True)  # Initialize colorama
-        self.api_client = OpenAI()  # Initialize OpenAI client
+        self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
+        self.api_client = None
+        if self.openai_api_key:
+            try:
+                self.api_client = OpenAI(api_key=self.openai_api_key)
+            except Exception:
+                self.api_client = None
         
         # Load general competencies by calling the method defined in the class
         self.general_competencies = self.load_general_competencies() 
@@ -517,9 +528,8 @@ class UnifiedSTARCoach:
         print(Fore.MAGENTA + "\\n✨ AI-Powered Suggestions: ✨" + Style.RESET_ALL) # This print is for console mode
         try:
             if not self.api_client:
-                error_msg = "OpenAI API client is not initialized. Skipping AI feedback."
-                print(Fore.RED + error_msg + Style.RESET_ALL) # Console
-                return f"[AI Error: {error_msg}]" # Return for app.py
+                print(Fore.YELLOW + "No OpenAI key available. Using mock feedback fallback." + Style.RESET_ALL)
+                return self.MOCK_AI_FEEDBACK
 
             prompt_text = (
                 f"You are an expert interview coach. A user has provided the following STAR story for the competency '{competency_for_ai}'. "
@@ -547,8 +557,8 @@ class UnifiedSTARCoach:
         except Exception as e:
             error_msg = f"Could not retrieve AI-powered feedback at this time: {e}"
             print(Fore.RED + error_msg + Style.RESET_ALL) # Console
-            print(Fore.YELLOW + "Please ensure your OpenAI API key is correctly configured as an environment variable (OPENAI_API_KEY)." + Style.RESET_ALL) # Console
-            ai_feedback_result = f"[AI Error: {error_msg}]" # Return for app.py
+            print(Fore.YELLOW + "Falling back to mock feedback so you can continue testing the UI flow." + Style.RESET_ALL) # Console
+            ai_feedback_result = self.MOCK_AI_FEEDBACK
         
         return ai_feedback_result
 

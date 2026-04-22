@@ -15,6 +15,11 @@ from competency_questions import COMPETENCY_QUESTIONS
 # Set page config FIRST before any other Streamlit calls
 st.set_page_config(page_title="STAR Coach Demo", page_icon="✨", layout="wide")
 
+MOCK_AI_RESPONSE = (
+    "Mock response (BYOK fallback): Great start. Add more specific context, clarify your exact actions, "
+    "and quantify your results to make your STAR answer stronger."
+)
+
 # Load API keys from Streamlit secrets first, then environment variables as fallback
 if 'gemini_api_key' not in st.session_state:
     try:
@@ -28,12 +33,45 @@ if 'openai_api_key' not in st.session_state:
     except Exception:
         st.session_state['openai_api_key'] = os.environ.get('OPENAI_API_KEY', "")
 
-# Display warnings if keys are missing
-if not st.session_state['gemini_api_key']:
-    st.warning("⚠️ Gemini API Key not found. Please set GEMINI_API_KEY in Streamlit secrets or environment variables. AI features will be disabled.", icon="⚠️")
+def mock_gemini_response():
+    return {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {
+                            "text": MOCK_AI_RESPONSE
+                        }
+                    ]
+                }
+            }
+        ]
+    }
 
-if not st.session_state['openai_api_key']:
-    st.warning("⚠️ OPENAI_API_KEY not found. Please set OPENAI_API_KEY in Streamlit secrets or environment variables for OpenAI-powered features.", icon="⚠️")
+
+class MockGeminiHTTPResponse:
+    def __init__(self):
+        self.ok = True
+        self.status_code = 200
+        self.reason = "OK"
+        self.text = MOCK_AI_RESPONSE
+
+    def json(self):
+        return mock_gemini_response()
+
+
+_real_requests_post = requests.post
+
+
+def safe_requests_post(url, headers=None, json=None, timeout=30, **kwargs):
+    api_key = st.session_state.get('gemini_api_key')
+    is_gemini_endpoint = "generativelanguage.googleapis.com" in str(url)
+    if is_gemini_endpoint and not api_key:
+        return MockGeminiHTTPResponse()
+    return _real_requests_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+
+requests.post = safe_requests_post
 
 # Slugify for safe filenames
 def slugify(value):
@@ -75,7 +113,7 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
         return f"[AI Error: {e}]"
 
 coach = STARMethodCoach()
-unified_coach = UnifiedSTARCoach() # Add this instantiation
+unified_coach = UnifiedSTARCoach(openai_api_key=st.session_state.get('openai_api_key')) # Add this instantiation
 
 # --- Initialize Session State ---
 if 'show_chat' not in st.session_state:
@@ -151,6 +189,22 @@ h1, h2, h3, h4, h5, h6 {
 
 # --- Sidebar: All selection controls ---
 st.sidebar.title("STAR Story Builder")
+st.sidebar.subheader("Bring Your Own Key (BYOK)")
+st.session_state['gemini_api_key'] = st.sidebar.text_input(
+    "Gemini API Key",
+    value=st.session_state.get('gemini_api_key', ''),
+    type="password",
+    key="sidebar_gemini_api_key",
+)
+st.session_state['openai_api_key'] = st.sidebar.text_input(
+    "OpenAI API Key",
+    value=st.session_state.get('openai_api_key', ''),
+    type="password",
+    key="sidebar_openai_api_key",
+)
+if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_key']:
+    st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
+
 mode = st.sidebar.radio("Choose STAR Mode", ["General STAR"], index=0)
 competencies = coach.competencies
 comp_list = list(competencies.keys())
@@ -194,7 +248,7 @@ else:
 def get_ai_chat_response(user_prompt):
     api_key = st.session_state.get('gemini_api_key')
     if not api_key:
-        return "[Error: Gemini API Key not configured]"
+        return MOCK_AI_RESPONSE
 
     # Construct conversation history for the API
     messages = []
