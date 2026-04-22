@@ -27,8 +27,8 @@ class UnifiedSTARCoach:
     """
     
     MOCK_AI_FEEDBACK = (
-        "Mock feedback (BYOK fallback): Use clearer context in Situation/Task, "
-        "highlight your direct actions with measurable outcomes, and close with the business impact."
+        "Mock response (BYOK fallback): Great start. Add more specific context, clarify your exact actions, "
+        "and quantify your results to make your STAR answer stronger."
     )
 
     def __init__(self, competency_file='competencies.json', openai_api_key=None): # Retaining competency_file for potential future use
@@ -39,8 +39,8 @@ class UnifiedSTARCoach:
         if self.openai_api_key:
             try:
                 self.api_client = OpenAI(api_key=self.openai_api_key)
-            except OpenAIError as err:
-                print(Fore.YELLOW + f"OpenAI client initialization failed, using mock fallback: {err}" + Style.RESET_ALL)
+            except OpenAIError:
+                print(Fore.YELLOW + "OpenAI client initialization failed, using mock fallback mode." + Style.RESET_ALL)
                 self.api_client = None
         
         # Load general competencies by calling the method defined in the class

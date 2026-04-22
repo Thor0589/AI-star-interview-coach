@@ -49,7 +49,7 @@ def mock_gemini_response():
     }
 
 
-class MockGeminiHTTPResponse:
+class MockGeminiResponse:
     def __init__(self):
         self.ok = True
         self.status_code = 200
@@ -60,10 +60,10 @@ class MockGeminiHTTPResponse:
         return mock_gemini_response()
 
 
-def gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
+def safe_gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
     api_key = st.session_state.get('gemini_api_key')
     if not api_key:
-        return MockGeminiHTTPResponse()
+        return MockGeminiResponse()
     return requests.request("POST", url, headers=headers, json=json, timeout=timeout, **kwargs)
 
 # Slugify for safe filenames
@@ -91,7 +91,7 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
     # Updated payload structure for :generateContent
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        response = gemini_post(url, headers=headers, json=data, timeout=30)
+        response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
         if not response.ok:
             # Try to parse error for more details
             try:
@@ -275,7 +275,7 @@ def get_ai_chat_response(user_prompt):
     # data["generationConfig"] = { "temperature": 0.7, "maxOutputTokens": 500 }
 
     try:
-        response = gemini_post(url, headers=headers, json=data, timeout=45)
+        response = safe_gemini_post(url, headers=headers, json=data, timeout=45)
         if not response.ok:
             try:
                 error_details = response.json()
@@ -474,7 +474,7 @@ with tabs[0]:  # Build tab
             # Updated payload
             data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
             try:
-                response = gemini_post(url, headers=headers, json=data, timeout=30)
+                response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     # Updated extraction
@@ -503,7 +503,7 @@ with tabs[0]:  # Build tab
             # Updated payload
             data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
             try:
-                response = gemini_post(url, headers=headers, json=data, timeout=30)
+                response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     # Updated extraction
@@ -546,7 +546,7 @@ with tabs[0]:  # Build tab
                         # Updated payload
                         data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                         try:
-                            response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
+                            response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                             if response.ok:
                                 result = response.json()
                                 # Updated extraction
@@ -592,7 +592,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = gemini_post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -621,7 +621,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = gemini_post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -664,7 +664,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
+                                response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -710,7 +710,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = gemini_post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -739,7 +739,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = gemini_post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -782,7 +782,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
+                                response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -828,7 +828,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
-                    response = gemini_post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -857,7 +857,7 @@ with tabs[0]:  # Build tab
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
-                    response = gemini_post(url, headers=headers, json=data, timeout=30)
+                    response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                     if response.ok:
                         result = response.json()
                         # Updated extraction
@@ -900,7 +900,7 @@ with tabs[0]:  # Build tab
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
-                                response = gemini_post(url, headers=headers, json=data_gem, timeout=30)
+                                response = safe_gemini_post(url, headers=headers, json=data_gem, timeout=30)
                                 if response.ok:
                                     result = response.json()
                                     # Updated extraction
@@ -1029,7 +1029,7 @@ with tabs[1]:  # Review & Score tab
             data = {"contents": [{"parts": [{"text": review_prompt}]}]}
             review_feedback = "" # Initialize review_feedback
             try:
-                response = gemini_post(url, headers=headers, json=data, timeout=30)
+                response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
                 if response.ok:
                     result = response.json()
                     review_feedback = result['candidates'][0]['content']['parts'][0]['text'].strip()
