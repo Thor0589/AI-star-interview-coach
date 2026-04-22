@@ -105,8 +105,6 @@ Write a strong, concise response for the '{section.capitalize()}' section. Only 
     except Exception as e:
         return f"[AI Error: {e}]"
 
-coach = STARMethodCoach()
-
 # --- Initialize Session State ---
 if 'show_chat' not in st.session_state:
     st.session_state.show_chat = False
@@ -197,7 +195,18 @@ st.session_state['openai_api_key'] = st.sidebar.text_input(
 if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_key']:
     st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
 
-unified_coach = UnifiedSTARCoach(openai_api_key=st.session_state.get('openai_api_key'))
+if 'star_coach' not in st.session_state:
+    st.session_state['star_coach'] = STARMethodCoach()
+coach = st.session_state['star_coach']
+
+current_openai_key = st.session_state.get('openai_api_key')
+if (
+    'unified_coach' not in st.session_state
+    or st.session_state.get('unified_coach_api_key') != current_openai_key
+):
+    st.session_state['unified_coach'] = UnifiedSTARCoach(openai_api_key=current_openai_key)
+    st.session_state['unified_coach_api_key'] = current_openai_key
+unified_coach = st.session_state['unified_coach']
 
 mode = st.sidebar.radio("Choose STAR Mode", ["General STAR"], index=0)
 competencies = coach.competencies
