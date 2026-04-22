@@ -39,8 +39,8 @@ class UnifiedSTARCoach:
         if self.openai_api_key:
             try:
                 self.api_client = OpenAI(api_key=self.openai_api_key)
-            except Exception:
-                print(Fore.YELLOW + "OpenAI client initialization failed, using mock fallback mode." + Style.RESET_ALL)
+            except Exception as err:
+                print(Fore.YELLOW + f"OpenAI client initialization failed ({err.__class__.__name__}), using mock fallback mode." + Style.RESET_ALL)
                 self.api_client = None
         
         # Load general competencies by calling the method defined in the class

@@ -60,7 +60,7 @@ def safe_gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
     if not api_key:
         st.session_state['gemini_mock_fallback_used'] = True
         return MockGeminiResponse()
-    return requests.request("POST", url, headers=headers, json=json, timeout=timeout, **kwargs)
+    return requests.post(url, headers=headers, json=json, timeout=timeout, **kwargs)
 
 # Slugify for safe filenames
 def slugify(value):
@@ -196,9 +196,16 @@ if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_k
     st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
 if st.session_state.get('gemini_mock_fallback_used') and not st.session_state['gemini_api_key']:
     st.sidebar.caption("Gemini calls are currently using mock responses.")
+if not st.session_state['openai_api_key']:
+    st.sidebar.caption("OpenAI feedback is currently using mock responses.")
 
-if 'star_coach' not in st.session_state:
+current_gemini_key = st.session_state.get('gemini_api_key')
+if (
+    'star_coach' not in st.session_state
+    or st.session_state.get('star_coach_api_key') != current_gemini_key
+):
     st.session_state['star_coach'] = STARMethodCoach()
+    st.session_state['star_coach_api_key'] = current_gemini_key
 coach = st.session_state['star_coach']
 
 current_openai_key = st.session_state.get('openai_api_key')
