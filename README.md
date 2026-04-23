@@ -42,9 +42,9 @@ Data flow for the main coaching path:
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-5. Configure API keys (environment variables) or provide them in the app sidebar at runtime (BYOK):
+5. Configure API keys (environment variables):
    ```bash
-   export GEMINI_API_KEY="your_gemini_key"
+   export GEMINI_API_KEY="your_gemini_key"  # required for Gemini-powered features
    export OPENAI_API_KEY="your_openai_key"
    ```
    On Windows (PowerShell):
@@ -56,7 +56,7 @@ Data flow for the main coaching path:
     ```bash
     streamlit run STARMETHOD/app.py
     ```
-   If no keys are supplied, the app runs in mock-response mode so you can still test the full UI flow.
+   Gemini calls use the server-side `GEMINI_API_KEY`. OpenAI can be provided via `OPENAI_API_KEY` or in the sidebar at runtime. If no keys are supplied, the app runs in mock-response mode so you can still test the full UI flow.
 
 ## Security Note
 Do **not** hardcode API keys in source files. Use environment variables (for example `GEMINI_API_KEY`) and secure secret management.
