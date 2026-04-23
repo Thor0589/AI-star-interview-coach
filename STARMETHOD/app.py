@@ -15,12 +15,15 @@ from competency_questions import COMPETENCY_QUESTIONS
 # Set page config FIRST before any other Streamlit calls
 st.set_page_config(page_title="STAR Coach Demo", page_icon="✨", layout="wide")
 
+def get_server_gemini_api_key():
+    try:
+        return st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        return os.environ.get('GEMINI_API_KEY', "")
+
 # Load API keys from Streamlit secrets first, then environment variables as fallback
 if 'gemini_api_key' not in st.session_state:
-    try:
-        st.session_state['gemini_api_key'] = st.secrets["GEMINI_API_KEY"]
-    except Exception:
-        st.session_state['gemini_api_key'] = os.environ.get('GEMINI_API_KEY', "")
+    st.session_state['gemini_api_key'] = get_server_gemini_api_key()
 
 if 'openai_api_key' not in st.session_state:
     try:
@@ -56,7 +59,8 @@ class MockGeminiResponse:
 
 
 def safe_gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
-    api_key = st.session_state.get('gemini_api_key')
+    api_key = get_server_gemini_api_key()
+    st.session_state['gemini_api_key'] = api_key
     if not api_key:
         st.session_state['gemini_mock_fallback_used'] = True
         return MockGeminiResponse()
@@ -187,14 +191,18 @@ st.session_state['openai_api_key'] = st.sidebar.text_input(
     type="password",
     key="sidebar_openai_api_key",
 )
-if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_key']:
+gemini_api_key = get_server_gemini_api_key()
+st.session_state['gemini_api_key'] = gemini_api_key
+openai_api_key = st.session_state.get('openai_api_key', '')
+if not gemini_api_key and not openai_api_key:
     st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
-if st.session_state.get('gemini_mock_fallback_used') and not st.session_state['gemini_api_key']:
+if st.session_state.get('gemini_mock_fallback_used') and not gemini_api_key:
     st.sidebar.caption("Gemini calls are currently using mock responses.")
-if not st.session_state['openai_api_key']:
+if not openai_api_key:
     st.sidebar.caption("OpenAI feedback is currently using mock responses.")
 
-current_gemini_key = st.session_state.get('gemini_api_key')
+current_gemini_key = get_server_gemini_api_key()
+st.session_state['gemini_api_key'] = current_gemini_key
 if (
     'star_coach' not in st.session_state
     or st.session_state.get('star_coach_api_key') != current_gemini_key
