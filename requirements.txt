@@ -3,3 +3,6 @@ requests
 colorama
 openai
 PyPDF2
+fastapi
+uvicorn
+httpx

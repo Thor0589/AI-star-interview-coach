@@ -9,18 +9,11 @@ from pathlib import Path
 from star_method_coach import STARMethodCoach
 from unified_star_coach import UnifiedSTARCoach, MOCK_AI_FALLBACK_RESPONSE # Add this import
 from models import Story
-import requests
+from gemini_proxy_client import safe_gemini_post, get_proxy_health
 from competency_questions import COMPETENCY_QUESTIONS
 
 # Set page config FIRST before any other Streamlit calls
 st.set_page_config(page_title="STAR Coach Demo", page_icon="✨", layout="wide")
-
-# Load API keys from Streamlit secrets first, then environment variables as fallback
-if 'gemini_api_key' not in st.session_state:
-    try:
-        st.session_state['gemini_api_key'] = st.secrets["GEMINI_API_KEY"]
-    except Exception:
-        st.session_state['gemini_api_key'] = os.environ.get('GEMINI_API_KEY', "")
 
 if 'openai_api_key' not in st.session_state:
     try:
@@ -54,14 +47,6 @@ class MockGeminiResponse:
     def json(self):
         return mock_gemini_response()
 
-
-def safe_gemini_post(url, headers=None, json=None, timeout=30, **kwargs):
-    api_key = st.session_state.get('gemini_api_key')
-    if not api_key:
-        st.session_state['gemini_mock_fallback_used'] = True
-        return MockGeminiResponse()
-    return requests.post(url, headers=headers, json=json, timeout=timeout, **kwargs)
-
 # Slugify for safe filenames
 def slugify(value):
     value = str(value)
@@ -80,15 +65,15 @@ Result: {current_story.get('result','')}
 
 Write a strong, concise response for the '{section.capitalize()}' section. Only return the text for this section.
 """
-    api_key = st.session_state['gemini_api_key']
-    # Updated URL to v1beta and :generateContent
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+    url = "/api/gemini"
     # Updated payload structure for :generateContent
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        response = safe_gemini_post(url, headers=headers, json=data, timeout=30)
+        response = safe_gemini_post(url, json=data, timeout=30)
         if not response.ok:
+            if response.status_code == 503:
+                st.session_state['gemini_mock_fallback_used'] = True
+                return MOCK_AI_FALLBACK_RESPONSE
             # Try to parse error for more details
             try:
                 error_details = response.json()
@@ -177,35 +162,19 @@ h1, h2, h3, h4, h5, h6 {
 
 # --- Sidebar: All selection controls ---
 st.sidebar.title("STAR Story Builder")
-st.sidebar.subheader("Bring Your Own Key (BYOK)")
-st.session_state['gemini_api_key'] = st.sidebar.text_input(
-    "Gemini API Key",
-    value=st.session_state.get('gemini_api_key', ''),
-    type="password",
-    key="sidebar_gemini_api_key",
-)
-st.session_state['openai_api_key'] = st.sidebar.text_input(
-    "OpenAI API Key",
-    value=st.session_state.get('openai_api_key', ''),
-    type="password",
-    key="sidebar_openai_api_key",
-)
-if st.session_state['gemini_api_key']:
-    st.session_state['gemini_mock_fallback_used'] = False
-if not st.session_state['gemini_api_key'] and not st.session_state['openai_api_key']:
-    st.sidebar.info("No API key provided. Running in mock response mode for UI testing.")
-if st.session_state.get('gemini_mock_fallback_used') and not st.session_state['gemini_api_key']:
-    st.sidebar.caption("Gemini calls are currently using mock responses.")
-if not st.session_state['openai_api_key']:
-    st.sidebar.caption("OpenAI feedback is currently using mock responses.")
+st.sidebar.subheader("Backend AI Status")
+proxy_health = get_proxy_health()
+if proxy_health.get("status") == "ok" and proxy_health.get("geminiConfigured"):
+    st.sidebar.success("Gemini proxy: connected")
+else:
+    st.sidebar.warning("Gemini proxy unavailable or key not configured. Using mock responses.")
+    st.session_state['gemini_mock_fallback_used'] = True
 
-current_gemini_key = st.session_state.get('gemini_api_key')
-if (
-    'star_coach' not in st.session_state
-    or st.session_state.get('star_coach_api_key') != current_gemini_key
-):
+if not st.session_state['openai_api_key']:
+    st.sidebar.caption("OpenAI feedback uses environment configuration or fallback responses.")
+
+if 'star_coach' not in st.session_state:
     st.session_state['star_coach'] = STARMethodCoach()
-    st.session_state['star_coach_api_key'] = current_gemini_key
 coach = st.session_state['star_coach']
 
 current_openai_key = st.session_state.get('openai_api_key')
@@ -258,10 +227,6 @@ else:
 # --- AI Chat Function (Defined BEFORE it's called) ---
 # @st.cache_data # Consider caching if prompts are often repeated
 def get_ai_chat_response(user_prompt):
-    api_key = st.session_state.get('gemini_api_key')
-    if not api_key:
-        return MOCK_AI_FALLBACK_RESPONSE
-
     # Construct conversation history for the API
     messages = []
     for msg in st.session_state.chat_history:
@@ -276,15 +241,16 @@ def get_ai_chat_response(user_prompt):
     # Note: The v1beta API uses a different structure for system instructions if needed.
     # For simplicity here, we'll prepend it or rely on the model's general knowledge.
 
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-    headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+    url = "/api/gemini"
     # Send the conversation history
     data = {"contents": messages}
     # Add generationConfig if needed (e.g., temperature, max_output_tokens)
     # data["generationConfig"] = { "temperature": 0.7, "maxOutputTokens": 500 }
 
     try:
-        response = safe_gemini_post(url, headers=headers, json=data, timeout=45)
+        response = safe_gemini_post(url, json=data, timeout=45)
+        if response.status_code == 503:
+            return MOCK_AI_FALLBACK_RESPONSE
         if not response.ok:
             try:
                 error_details = response.json()
@@ -300,7 +266,7 @@ def get_ai_chat_response(user_prompt):
              return f"[AI Response Error: Finish Reason: {finish_reason}. Safety: {safety_ratings}]"
 
         return result['candidates'][0]['content']['parts'][0]['text'].strip()
-    except requests.exceptions.Timeout:
+    except TimeoutError:
         return "[AI Chat Error: The request timed out. Please try again.]"
     except Exception as e:
         return f"[AI Chat Error: {e}]"
@@ -476,10 +442,9 @@ with tabs[0]:  # Build tab
         grammar_feedback = ""
         if st.button("Check Grammar & Style", key="grammar_situation"):
             proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Situation section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{s}"
-            api_key = st.session_state['gemini_api_key']
-            # Updated URL
-            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                        # Updated URL
+            url = "/api/gemini"
+            headers = {}
             # Updated payload
             data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
             try:
@@ -505,10 +470,9 @@ with tabs[0]:  # Build tab
         tone_feedback = ""
         if st.button("Check Tone", key="tone_situation"):
             tone_prompt = f"Analyze the emotional and professional tone of this STAR Situation section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{s}"
-            api_key = st.session_state['gemini_api_key']
-            # Updated URL
-            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                        # Updated URL
+            url = "/api/gemini"
+            headers = {}
             # Updated payload
             data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
             try:
@@ -548,10 +512,9 @@ with tabs[0]:  # Build tab
                     for story in data:
                         # Use Gemini to get a similarity score
                         sim_prompt = f"Compare the following two STAR Situation sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{s}\\n\\nSection 2:\\n{story.get('situation','')}\\n\\nScore only:"
-                        api_key = st.session_state['gemini_api_key']
-                        # Updated URL
-                        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                        headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                                # Updated URL
+                        url = "/api/gemini"
+                        headers = {}
                         # Updated payload
                         data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                         try:
@@ -594,10 +557,9 @@ with tabs[0]:  # Build tab
             grammar_feedback_t = ""
             if st.button("Check Grammar & Style", key="grammar_task"):
                 proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Task section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{t}"
-                api_key = st.session_state['gemini_api_key']
-                # Updated URL
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                # Updated URL
+                url = "/api/gemini"
+                headers = {}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
@@ -623,10 +585,9 @@ with tabs[0]:  # Build tab
             tone_feedback_t = ""
             if st.button("Check Tone", key="tone_task"):
                 tone_prompt = f"Analyze the emotional and professional tone of this STAR Task section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{t}"
-                api_key = st.session_state['gemini_api_key']
-                # Updated URL
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                # Updated URL
+                url = "/api/gemini"
+                headers = {}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
@@ -666,10 +627,9 @@ with tabs[0]:  # Build tab
                         for story in data:
                             # Use Gemini to get a similarity score
                             sim_prompt = f"Compare the following two STAR Task sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{t}\\n\\nSection 2:\\n{story.get('task','')}\\n\\nScore only:"
-                            api_key = st.session_state['gemini_api_key']
-                            # Updated URL
-                            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                                        # Updated URL
+                            url = "/api/gemini"
+                            headers = {}
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
@@ -712,10 +672,9 @@ with tabs[0]:  # Build tab
             grammar_feedback_a = ""
             if st.button("Check Grammar & Style", key="grammar_action"):
                 proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Action section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{a}"
-                api_key = st.session_state['gemini_api_key']
-                # Updated URL
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                # Updated URL
+                url = "/api/gemini"
+                headers = {}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
@@ -741,10 +700,9 @@ with tabs[0]:  # Build tab
             tone_feedback_a = ""
             if st.button("Check Tone", key="tone_action"):
                 tone_prompt = f"Analyze the emotional and professional tone of this STAR Action section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{a}"
-                api_key = st.session_state['gemini_api_key']
-                # Updated URL
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                # Updated URL
+                url = "/api/gemini"
+                headers = {}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
@@ -784,10 +742,9 @@ with tabs[0]:  # Build tab
                         for story in data:
                             # Use Gemini to get a similarity score
                             sim_prompt = f"Compare the following two STAR Action sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{a}\\n\\nSection 2:\\n{story.get('action','')}\\n\\nScore only:"
-                            api_key = st.session_state['gemini_api_key']
-                            # Updated URL
-                            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                                        # Updated URL
+                            url = "/api/gemini"
+                            headers = {}
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
@@ -830,10 +787,9 @@ with tabs[0]:  # Build tab
             grammar_feedback_r = ""
             if st.button("Check Grammar & Style", key="grammar_result"):
                 proofread_prompt = f"Proofread and suggest grammar/style improvements for this STAR Result section. If there are errors or awkward phrasing, rewrite the text and explain the changes.\\n\\nText:\\n{r}"
-                api_key = st.session_state['gemini_api_key']
-                # Updated URL
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                # Updated URL
+                url = "/api/gemini"
+                headers = {}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": proofread_prompt}]}]}
                 try:
@@ -859,10 +815,9 @@ with tabs[0]:  # Build tab
             tone_feedback_r = ""
             if st.button("Check Tone", key="tone_result"):
                 tone_prompt = f"Analyze the emotional and professional tone of this STAR Result section. Is it confident, empathetic, assertive, etc.? Give a short summary and suggest improvements if needed.\\n\\nText:\\n{r}"
-                api_key = st.session_state['gemini_api_key']
-                # Updated URL
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                # Updated URL
+                url = "/api/gemini"
+                headers = {}
                 # Updated payload
                 data = {"contents": [{"parts": [{"text": tone_prompt}]}]}
                 try:
@@ -902,10 +857,9 @@ with tabs[0]:  # Build tab
                         for story in data:
                             # Use Gemini to get a similarity score
                             sim_prompt = f"Compare the following two STAR Result sections and return a similarity score from 0 (not similar) to 1 (identical).\\n\\nSection 1:\\n{r}\\n\\nSection 2:\\n{story.get('result','')}\\n\\nScore only:"
-                            api_key = st.session_state['gemini_api_key']
-                            # Updated URL
-                            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-                            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                                                        # Updated URL
+                            url = "/api/gemini"
+                            headers = {}
                             # Updated payload
                             data_gem = {"contents": [{"parts": [{"text": sim_prompt}]}]}
                             try:
@@ -1032,9 +986,8 @@ with tabs[1]:  # Review & Score tab
 
 **Result:**
 {current_r}"""
-            api_key = st.session_state['gemini_api_key']
-            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent"
-            headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+            url = "/api/gemini"
+            headers = {}
             data = {"contents": [{"parts": [{"text": review_prompt}]}]}
             review_feedback = "" # Initialize review_feedback
             try:
