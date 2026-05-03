@@ -48,8 +48,21 @@ function saveQuestion(question) {
   localStorage.setItem(QUESTION_STORAGE_KEY, question);
 }
 
+function getPresetQuestionValues() {
+  return Array.from(el('question_preset').options)
+    .map((option) => option.value)
+    .filter(Boolean);
+}
+
+function syncQuestionPreset(question) {
+  const presetValues = getPresetQuestionValues();
+  el('question_preset').value = presetValues.includes(question) ? question : '';
+}
+
 function updateQuestionUI() {
-  el('question').value = getStoredQuestion();
+  const question = getStoredQuestion();
+  el('question').value = question;
+  syncQuestionPreset(question);
 }
 
 // --- Gemini direct call ---
@@ -126,7 +139,18 @@ el('clear_key').addEventListener('click', () => {
 });
 
 el('question').addEventListener('input', () => {
-  saveQuestion(el('question').value);
+  const question = el('question').value;
+  saveQuestion(question);
+  syncQuestionPreset(question);
+});
+
+el('question_preset').addEventListener('change', () => {
+  const selectedQuestion = el('question_preset').value;
+  if (!selectedQuestion) {
+    return;
+  }
+  el('question').value = selectedQuestion;
+  saveQuestion(selectedQuestion);
 });
 
 // Evaluate button
