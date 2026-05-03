@@ -4,6 +4,9 @@ const API_BASE_URL = "https://YOUR-BACKEND-URL.com";
 
 function el(id) { return document.getElementById(id); }
 
+const DEFAULT_INTERVIEW_QUESTION = 'Tell me about a time you solved a difficult technical problem.';
+const QUESTION_STORAGE_KEY = 'INTERVIEW_QUESTION';
+
 // --- Key storage (BYOK) ---
 function getStoredKey() {
   const persistent = localStorage.getItem('GEMINI_STORE') === '1';
@@ -34,6 +37,19 @@ function updateKeyUI() {
   el('api_key_input').value = key ? key : '';
   const persist = localStorage.getItem('GEMINI_STORE') === '1';
   el('persist_key').checked = persist;
+}
+
+function getStoredQuestion() {
+  const storedQuestion = localStorage.getItem(QUESTION_STORAGE_KEY);
+  return storedQuestion === null ? DEFAULT_INTERVIEW_QUESTION : storedQuestion;
+}
+
+function saveQuestion(question) {
+  localStorage.setItem(QUESTION_STORAGE_KEY, question);
+}
+
+function updateQuestionUI() {
+  el('question').value = getStoredQuestion();
 }
 
 // --- Gemini direct call ---
@@ -107,6 +123,10 @@ el('clear_key').addEventListener('click', () => {
   clearKey();
   updateKeyUI();
   alert('API key cleared from browser storage.');
+});
+
+el('question').addEventListener('input', () => {
+  saveQuestion(el('question').value);
 });
 
 // Evaluate button
@@ -222,3 +242,4 @@ el('generate').addEventListener('click', async () => {
 
 // Initialize UI
 updateKeyUI();
+updateQuestionUI();
