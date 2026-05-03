@@ -1,0 +1,14 @@
+:root{--bg:#0f1720;--card:#0b1220;--accent:#6ee7b7;--muted:#94a3b8;--text:#e6eef6}
+*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+body{margin:0;background:linear-gradient(180deg,#071021, #0b1220);color:var(--text)}
+.container{max-width:900px;margin:28px auto;padding:20px}
+h1{margin:0 0 12px}
+.card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+label{display:block;margin-top:12px;font-weight:600;color:var(--muted)}
+input,textarea{width:100%;padding:10px;margin-top:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:#071427;color:var(--text)}
+.buttons{display:flex;gap:8px;margin-top:12px}
+button{padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#062;cursor:pointer}
+button.muted{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text)}
+.output{margin-top:14px;padding:12px;background:#061722;border-radius:8px;color:var(--text)}
+footer{margin-top:16px;color:var(--muted)}
+pre{white-space:pre-wrap}

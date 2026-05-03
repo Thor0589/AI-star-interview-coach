@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>STAR Interview Coach</title>
+  <script>
+    // Determine static prefix: when served by backend, static files are under /static
+    // When deployed as GitHub Pages, files are at root. We set STATIC_PREFIX accordingly.
+    const STATIC_PREFIX = (window.location.hostname && window.location.hostname.includes('github.io')) ? '' : '/static';
+    // Inject stylesheet dynamically so path can adapt to hosting environment
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    const cssPath = STATIC_PREFIX ? (STATIC_PREFIX + '/styles.css') : 'styles.css';
+    link.href = cssPath;
+    document.head.appendChild(link);
+  </script>
+</head>
+<body>
+  <main class="container">
+    <h1>STAR Interview Coach</h1>
+    <section class="card">
+      <div class="settings">
+        <h3>Settings — Bring Your Own Key (BYOK)</h3>
+        <p class="muted">Bring your own Gemini API key to use AI features directly from this static site.</p>
+        <label>Gemini API Key</label>
+        <input id="api_key_input" placeholder="Paste your Gemini API key here" type="password" />
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+          <label style="display:flex;align-items:center;gap:6px;"><input id="persist_key" type="checkbox"/> Persist (localStorage)</label>
+          <button id="save_key">Save Key</button>
+          <button id="clear_key" class="muted">Clear Key</button>
+        </div>
+        <p class="note">Your key is stored only in your browser. Do not use this on a shared computer.</p>
+        <hr />
+      </div>
+      <label>Interview Question</label>
+      <input id="question" placeholder="Enter the interview question" />
+
+      <label>Competency (optional)</label>
+      <input id="competency" placeholder="e.g. Teamwork" />
+
+      <label>Situation</label>
+      <textarea id="situation" rows="3" placeholder="Describe the situation"></textarea>
+
+      <label>Task</label>
+      <textarea id="task" rows="2" placeholder="Describe your task"></textarea>
+
+      <label>Action</label>
+      <textarea id="action" rows="4" placeholder="Describe the actions you took"></textarea>
+
+      <label>Result</label>
+      <textarea id="result" rows="3" placeholder="Describe the result/outcome"></textarea>
+
+      <div class="buttons">
+        <button id="evaluate">Get Feedback & Score</button>
+        <button id="generate" class="muted">Generate Polished STAR</button>
+        <label style="margin-left:8px;display:flex;align-items:center;gap:6px;"><input id="use_ai_eval" type="checkbox" checked/> Use AI for evaluation</label>
+      </div>
+
+      <div id="output" class="output"></div>
+    </section>
+
+    <footer>
+      <small>Backend API: <a href="/api/health">/api/health</a></small>
+    </footer>
+  </main>
+
+  <script>
+    // Load app.js dynamically using same STATIC_PREFIX heuristic
+    (function(){
+      const STATIC_PREFIX = (window.location.hostname && window.location.hostname.includes('github.io')) ? '' : '/static';
+      const s = document.createElement('script');
+      s.src = STATIC_PREFIX ? (STATIC_PREFIX + '/app.js') : 'app.js';
+      s.defer = true;
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
